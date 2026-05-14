@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N4 플래시카드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Noto+Sans+KR:wght@300;400;700&family=Shippori+Mincho:wght@400;700&display=swap');
+  :root {
+    --bg:#0f0e0c; --surface:#1a1916; --surface2:#242320; --border:#2e2c28;
+    --accent:#c8a96e; --accent2:#e8c98e; --text:#f0ece4;
+    --text-muted:#7a7568; --text-dim:#4a4840;
+    --red:#c26060; --green:#6a9e7a; --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px;}
+  body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.6;}
+  .container{position:relative;z-index:1;width:100%;max-width:480px;}
+  header{text-align:center;margin-bottom:20px;padding-top:4px;}
+  .logo{font-family:'Shippori Mincho',serif;font-size:12px;letter-spacing:.3em;color:var(--accent);text-transform:uppercase;margin-bottom:4px;}
+  header h1{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+
+  /* 탭 */
+  .tab-nav{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px;}
+  .tab-btn{flex:1;padding:8px;background:none;border:none;border-radius:12px;color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:.03em;}
+  .tab-btn.active{background:var(--surface2);color:var(--accent);font-weight:700;}
+  .tab-pane{display:none;} .tab-pane.active{display:block;}
+
+  /* 모드 전환 */
+  .mode-bar{display:flex;gap:6px;margin-bottom:16px;}
+  .mode-btn{flex:1;padding:9px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.4;}
+  .mode-btn.active{background:rgba(200,169,110,.12);border-color:var(--accent);color:var(--accent);font-weight:700;}
+  .mode-btn .mode-sub{font-size:10px;color:var(--text-dim);display:block;margin-top:2px;font-weight:400;}
+  .mode-btn.active .mode-sub{color:var(--text-muted);}
+
+  /* 오늘 진도 배너 */
+  .today-banner{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+  .today-label{font-size:11px;color:var(--text-muted);letter-spacing:.08em;}
+  .today-progress{font-family:'Shippori Mincho',serif;font-size:16px;color:var(--accent);}
+  .today-range{font-size:11px;color:var(--text-dim);}
+
+  /* 통계 */
+  .stats{display:flex;margin-bottom:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+  .stat{text-align:center;flex:1;}
+  .stat-value{font-size:20px;font-weight:700;color:var(--accent);font-family:'Shippori Mincho',serif;}
+  .stat-label{font-size:10px;color:var(--text-muted);letter-spacing:.1em;margin-top:2px;}
+  .stat+.stat{border-left:1px solid var(--border);}
+
+  /* 진행바 */
+  .progress-bar{height:3px;background:var(--surface2);border-radius:99px;margin-bottom:18px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .4s ease;}
+
+  /* 카드 */
+  .card-area{perspective:1000px;margin-bottom:14px;}
+  .card{position:relative;width:100%;min-height:300px;cursor:pointer;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1);}
+  .card.flipped{transform:rotateY(180deg);}
+  .card-front,.card-back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius);border:1px solid var(--border);padding:28px 24px;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:300px;}
+  .card-front{background:var(--surface);}
+  .card-back{background:var(--surface2);transform:rotateY(180deg);justify-content:flex-start;padding-top:22px;}
+  .card-type-badge{position:absolute;top:13px;right:13px;font-size:10px;color:var(--text-dim);letter-spacing:.1em;border:1px solid var(--border);padding:3px 8px;border-radius:99px;}
+  .card-num-badge{position:absolute;top:13px;left:13px;font-size:10px;color:var(--text-dim);letter-spacing:.05em;font-family:'Shippori Mincho',serif;}
+  .speak-btn{background:none;border:1px solid var(--border);border-radius:99px;padding:4px 12px;color:var(--text-dim);font-size:11px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:'Noto Sans KR',sans-serif;}
+  .speak-btn:hover,.speak-btn.speaking{color:var(--accent);border-color:var(--accent);}
+  .card-kanji{font-family:'Shippori Mincho',serif;font-size:52px;font-weight:700;color:var(--text);margin-bottom:10px;line-height:1;letter-spacing:.05em;}
+  .card-reading{font-family:'Noto Sans JP',sans-serif;font-size:18px;color:var(--accent);font-weight:300;letter-spacing:.15em;margin-bottom:16px;}
+  .tap-hint{font-size:11px;color:var(--text-dim);letter-spacing:.1em;margin-top:auto;}
+  .back-top{display:flex;align-items:center;gap:12px;align-self:flex-start;margin-bottom:12px;}
+  .back-kanji{font-family:'Shippori Mincho',serif;font-size:26px;color:var(--text);margin-bottom:2px;}
+  .back-reading{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--accent);letter-spacing:.12em;}
+  .divider{width:100%;height:1px;background:var(--border);margin-bottom:13px;}
+  .meaning{font-size:20px;font-weight:700;color:var(--text);align-self:flex-start;margin-bottom:13px;line-height:1.4;}
+  .example-label{font-size:10px;color:var(--text-dim);letter-spacing:.15em;align-self:flex-start;margin-bottom:6px;}
+  .example-jp{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--text-muted);align-self:flex-start;line-height:1.7;margin-bottom:3px;}
+  .example-kr{font-size:12px;color:var(--text-dim);align-self:flex-start;line-height:1.6;font-style:italic;}
+
+  /* 버튼 */
+  .buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .btn{padding:13px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;letter-spacing:.05em;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .btn-again{background:rgba(194,96,96,.1);color:var(--red);border-color:rgba(194,96,96,.3);}
+  .btn-again:hover{background:rgba(194,96,96,.2);}
+  .btn-good{background:rgba(106,158,122,.1);color:var(--green);border-color:rgba(106,158,122,.3);}
+  .btn-good:hover{background:rgba(106,158,122,.2);}
+  .btn-hidden{opacity:0;pointer-events:none;}
+  .deck-info{text-align:center;font-size:11px;color:var(--text-dim);letter-spacing:.1em;}
+
+  /* 완료 */
+  .complete-screen{display:none;text-align:center;padding:40px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+  .complete-screen.show{display:block;}
+  .complete-emoji{font-size:44px;margin-bottom:14px;}
+  .complete-title{font-family:'Shippori Mincho',serif;font-size:22px;color:var(--accent);margin-bottom:8px;}
+  .complete-sub{font-size:13px;color:var(--text-muted);line-height:1.9;margin-bottom:24px;white-space:pre-line;}
+  .complete-actions{display:flex;flex-direction:column;gap:10px;}
+  .btn-restart{background:var(--accent);color:var(--bg);border:none;padding:12px 28px;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:.05em;transition:opacity .2s;}
+  .btn-restart:hover{opacity:.85;}
+  .btn-review{background:rgba(194,96,96,.1);color:var(--red);border:1px solid rgba(194,96,96,.3);padding:12px 28px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:.05em;transition:all .2s;}
+  .btn-review:hover{background:rgba(194,96,96,.2);}
+  .btn-review:disabled{opacity:.3;cursor:not-allowed;}
+
+  /* 기록 탭 */
+  .record-header{text-align:center;margin-bottom:18px;}
+  .record-header h2{font-family:'Shippori Mincho',serif;font-size:18px;color:var(--accent);margin-bottom:4px;}
+  .record-header p{font-size:12px;color:var(--text-dim);}
+  .streak-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;display:flex;align-items:center;gap:16px;}
+  .streak-flame{font-size:34px;}
+  .streak-count{font-family:'Shippori Mincho',serif;font-size:28px;color:var(--accent);line-height:1;}
+  .streak-label{font-size:11px;color:var(--text-muted);margin-top:3px;}
+  .overall-progress{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;}
+  .op-title{font-size:11px;color:var(--text-dim);letter-spacing:.1em;margin-bottom:10px;}
+  .op-bar-wrap{height:6px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-bottom:6px;}
+  .op-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .6s ease;}
+  .op-nums{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);}
+  .weekly-label{font-size:10px;color:var(--text-dim);letter-spacing:.1em;margin-bottom:8px;}
+  .weekly-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:18px;}
+  .day-cell{aspect-ratio:1;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+  .day-cell.studied{background:rgba(200,169,110,.15);border-color:rgba(200,169,110,.4);}
+  .day-cell.today{border-color:var(--accent);}
+  .day-label{font-size:9px;color:var(--text-dim);}
+  .day-count{font-size:11px;font-weight:700;color:var(--text-muted);}
+  .day-cell.studied .day-count{color:var(--accent);}
+  .history-list{display:flex;flex-direction:column;gap:7px;}
+  .history-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;display:flex;justify-content:space-between;align-items:center;}
+  .history-date{font-size:12px;color:var(--text-muted);}
+  .history-stats{display:flex;gap:12px;}
+  .h-done{font-size:12px;color:var(--green);}
+  .h-again{font-size:12px;color:var(--red);}
+  .no-record{text-align:center;padding:40px 20px;color:var(--text-dim);font-size:13px;line-height:1.9;}
+  .clear-btn{width:100%;margin-top:18px;padding:10px;background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s;}
+  .clear-btn:hover{color:var(--red);border-color:var(--red);}
+
+  /* 1500개 안내 */
+  .expand-guide{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;}
+  .expand-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .expand-body{font-size:12px;color:var(--text-muted);line-height:1.8;}
+  .expand-body a{color:var(--accent);text-decoration:none;}
+  .expand-body code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:11px;color:var(--text);}
+
+  @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:fadeIn .3s ease;}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">JLPT · N4</div>
+    <h1>플래시카드</h1>
+  </header>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('study')">📖 학습</button>
+    <button class="tab-btn" onclick="switchTab('record')">📊 기록</button>
+    <button class="tab-btn" onclick="switchTab('guide')">⚙️ 확장</button>
+  </div>
+
+  <!-- 학습 탭 -->
+  <div class="tab-pane active" id="tab-study">
+
+    <!-- 모드 전환 -->
+    <div class="mode-bar">
+      <button class="mode-btn active" id="mode-daily" onclick="setMode('daily')">
+        하루 25개
+        <span class="mode-sub">날짜별 진도 저장</span>
+      </button>
+      <button class="mode-btn" id="mode-all" onclick="setMode('all')">
+        전체 학습
+        <span class="mode-sub">300개 셔플</span>
+      </button>
+      <button class="mode-btn" id="mode-review" onclick="setMode('review')">
+        오답 복습
+        <span class="mode-sub" id="review-count-label">0개</span>
+      </button>
+    </div>
+
+    <!-- 오늘 진도 배너 (daily 모드) -->
+    <div class="today-banner" id="today-banner">
+      <div>
+        <div class="today-label">오늘의 단어</div>
+        <div class="today-range" id="today-range">—</div>
+      </div>
+      <div class="today-progress" id="today-progress">0 / 25</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-value" id="stat-total">0</div><div class="stat-label">오늘 분량</div></div>
+      <div class="stat"><div class="stat-value" id="stat-done" style="color:var(--green)">0</div><div class="stat-label">완료</div></div>
+      <div class="stat"><div class="stat-value" id="stat-again" style="color:var(--red)">0</div><div class="stat-label">복습</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+    <div class="card-area" id="card-area">
+      <div class="card" id="card" onclick="flipCard()">
+        <div class="card-front">
+          <div class="card-num-badge" id="card-num">—</div>
+          <button class="speak-btn" onclick="speakWord(event)" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);">🔊 발음</button>
+          <div class="card-type-badge" id="card-type">—</div>
+          <div class="card-kanji" id="front-kanji">—</div>
+          <div class="card-reading" id="front-reading">—</div>
+          <div class="tap-hint">탭해서 뜻 보기</div>
+        </div>
+        <div class="card-back">
+          <div class="back-top">
+            <button class="speak-btn" onclick="speakWord(event)">🔊</button>
+            <div><div class="back-kanji" id="back-kanji">—</div><div class="back-reading" id="back-reading">—</div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="meaning" id="back-meaning">—</div>
+          <div class="example-label">예문</div>
+          <div class="example-jp" id="example-jp">—</div>
+          <div class="example-kr" id="example-kr">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="complete-screen" id="complete-screen">
+      <div class="complete-emoji">🎌</div>
+      <div class="complete-title" id="complete-title">세션 완료!</div>
+      <div class="complete-sub" id="complete-sub"></div>
+      <div class="complete-actions">
+        <button class="btn-restart" onclick="restartSession()">다시 시작</button>
+        <button class="btn-review" id="btn-do-review" onclick="doReviewSession()">틀린 단어 복습하기</button>
+      </div>
+    </div>
+
+    <div class="buttons" id="buttons">
+      <button class="btn btn-again btn-hidden" id="btn-again" onclick="grade('again')">✗ 모르겠어</button>
+      <button class="btn btn-good btn-hidden" id="btn-good" onclick="grade('good')">✓ 알겠어</button>
+    </div>
+    <div class="deck-info" id="deck-info"></div>
+  </div>
+
+  <!-- 기록 탭 -->
+  <div class="tab-pane" id="tab-record">
+    <div class="record-header"><h2>학습 기록</h2><p>7/5까지 매일 🎯</p></div>
+    <div id="record-content"></div>
+  </div>
+
+  <!-- 확장 가이드 탭 -->
+  <div class="tab-pane" id="tab-guide">
+    <div class="expand-guide">
+      <div class="expand-title">📦 1500개로 확장하는 방법</div>
+      <div class="expand-body">
+        <b>Step 1.</b> 아래 링크에서 N4 단어 데이터 다운로드<br>
+        👉 <a href="https://github.com/elzup/jlpt-word-list" target="_blank">github.com/elzup/jlpt-word-list</a><br>
+        → <code>n4.json</code> 파일 다운로드<br><br>
+
+        <b>Step 2.</b> 이 HTML 파일의 <code>const WORDS = [...]</code> 부분을 찾아서<br>
+        다운받은 단어 데이터로 교체<br><br>
+
+        <b>Step 3.</b> 형식 맞추기<br>
+        각 단어 항목이 아래 형식이어야 해요:<br>
+        <code>{k:'단어', r:'읽기', m:'뜻', t:'품사', ej:'예문JP', ek:'예문KR'}</code><br><br>
+
+        <b>또는</b> Claude에게 "N4 단어 데이터를 이 형식으로 변환해줘"라고 부탁하면 돼요 😊
+      </div>
+    </div>
+    <div class="expand-guide">
+      <div class="expand-title">📅 하루 25개 모드 동작 방식</div>
+      <div class="expand-body">
+        • 매일 순서대로 25개씩 배정돼요<br>
+        • 1일차: 1~25번, 2일차: 26~50번, ...<br>
+        • 날짜가 바뀌면 자동으로 다음 25개로 넘어가요<br>
+        • 오답은 <b>오답 복습</b> 모드에 쌓여요<br>
+        • 300개 기준 12일 완성 → 1500개면 60일(약 2달)<br><br>
+        <b>7/5 시험까지 7주 = 49일</b><br>
+        → 1500개 데이터 추가하면 딱 맞아요 💪
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 단어 데이터 (300개) ────────────────────────────────────────────────────
+const WORDS = [
+  // 명사
+  {k:'電話',r:'でんわ',m:'전화',t:'명사',ej:'電話をかけてください。',ek:'전화를 걸어주세요.'},
+  {k:'大学',r:'だいがく',m:'대학교',t:'명사',ej:'大学で勉強しています。',ek:'대학에서 공부해요.'},
+  {k:'新聞',r:'しんぶん',m:'신문',t:'명사',ej:'毎朝新聞を読みます。',ek:'매일 아침 신문을 읽어요.'},
+  {k:'病院',r:'びょういん',m:'병원',t:'명사',ej:'病院に行きました。',ek:'병원에 갔어요.'},
+  {k:'旅行',r:'りょこう',m:'여행',t:'명사',ej:'来月旅行に行きます。',ek:'다음 달 여행을 가요.'},
+  {k:'練習',r:'れんしゅう',m:'연습',t:'명사',ej:'毎日練習しています。',ek:'매일 연습하고 있어요.'},
+  {k:'説明',r:'せつめい',m:'설명',t:'명사',ej:'もう一度説明してください。',ek:'다시 설명해 주세요.'},
+  {k:'予約',r:'よやく',m:'예약',t:'명사',ej:'レストランを予約しました。',ek:'레스토랑을 예약했어요.'},
+  {k:'文化',r:'ぶんか',m:'문화',t:'명사',ej:'日本の文化が好きです。',ek:'일본 문화를 좋아해요.'},
+  {k:'準備',r:'じゅんび',m:'준비',t:'명사',ej:'準備ができました。',ek:'준비가 됐어요.'},
+  {k:'経験',r:'けいけん',m:'경험',t:'명사',ej:'いい経験になりました。',ek:'좋은 경험이 됐어요.'},
+  {k:'意味',r:'いみ',m:'의미',t:'명사',ej:'この言葉の意味は？',ek:'이 단어의 의미는?'},
+  {k:'場所',r:'ばしょ',m:'장소',t:'명사',ej:'待ち合わせの場所はここです。',ek:'만남의 장소는 여기예요.'},
+  {k:'気持ち',r:'きもち',m:'기분',t:'명사',ej:'気持ちを伝えたいです。',ek:'기분을 전하고 싶어요.'},
+  {k:'関係',r:'かんけい',m:'관계',t:'명사',ej:'いい関係を保ちたい。',ek:'좋은 관계를 유지하고 싶어요.'},
+  {k:'問題',r:'もんだい',m:'문제',t:'명사',ej:'問題があります。',ek:'문제가 있어요.'},
+  {k:'結果',r:'けっか',m:'결과',t:'명사',ej:'試験の結果が出ました。',ek:'시험 결과가 나왔어요.'},
+  {k:'理由',r:'りゆう',m:'이유',t:'명사',ej:'理由を教えてください。',ek:'이유를 알려주세요.'},
+  {k:'方法',r:'ほうほう',m:'방법',t:'명사',ej:'いい方法を考えましょう。',ek:'좋은 방법을 생각해봐요.'},
+  {k:'社会',r:'しゃかい',m:'사회',t:'명사',ej:'社会に出ました。',ek:'사회에 나왔어요.'},
+  {k:'機会',r:'きかい',m:'기회',t:'명사',ej:'いい機会ですね。',ek:'좋은 기회네요.'},
+  {k:'生活',r:'せいかつ',m:'생활',t:'명사',ej:'毎日の生活が楽しい。',ek:'매일 생활이 즐거워요.'},
+  {k:'人生',r:'じんせい',m:'인생',t:'명사',ej:'人生は短いです。',ek:'인생은 짧아요.'},
+  {k:'世界',r:'せかい',m:'세계',t:'명사',ej:'世界を旅したい。',ek:'세계를 여행하고 싶어요.'},
+  {k:'自然',r:'しぜん',m:'자연',t:'명사',ej:'自然が美しいです。',ek:'자연이 아름다워요.'},
+  {k:'天気',r:'てんき',m:'날씨',t:'명사',ej:'今日の天気はいいです。',ek:'오늘 날씨가 좋아요.'},
+  {k:'季節',r:'きせつ',m:'계절',t:'명사',ej:'春が好きな季節です。',ek:'봄이 좋아하는 계절이에요.'},
+  {k:'時間',r:'じかん',m:'시간',t:'명사',ej:'時間がありません。',ek:'시간이 없어요.'},
+  {k:'場合',r:'ばあい',m:'경우',t:'명사',ej:'その場合はどうする？',ek:'그 경우에는 어떻게 해?'},
+  {k:'様子',r:'ようす',m:'모습, 상황',t:'명사',ej:'様子を見てみましょう。',ek:'상황을 지켜봅시다.'},
+  {k:'注意',r:'ちゅうい',m:'주의',t:'명사',ej:'注意してください。',ek:'주의해 주세요.'},
+  {k:'計画',r:'けいかく',m:'계획',t:'명사',ej:'計画を立てました。',ek:'계획을 세웠어요.'},
+  {k:'目的',r:'もくてき',m:'목적',t:'명사',ej:'目的は何ですか。',ek:'목적이 뭔가요?'},
+  {k:'意見',r:'いけん',m:'의견',t:'명사',ej:'意見を聞かせてください。',ek:'의견을 들려주세요.'},
+  {k:'情報',r:'じょうほう',m:'정보',t:'명사',ej:'情報を集めています。',ek:'정보를 모으고 있어요.'},
+  {k:'連絡',r:'れんらく',m:'연락',t:'명사',ej:'後で連絡します。',ek:'나중에 연락할게요.'},
+  {k:'返事',r:'へんじ',m:'답장',t:'명사',ej:'早く返事をください。',ek:'빨리 답장을 주세요.'},
+  {k:'交通',r:'こうつう',m:'교통',t:'명사',ej:'交通が便利です。',ek:'교통이 편리해요.'},
+  {k:'運転',r:'うんてん',m:'운전',t:'명사',ej:'車の運転が好きです。',ek:'차 운전을 좋아해요.'},
+  {k:'信号',r:'しんごう',m:'신호',t:'명사',ej:'信号が赤です。',ek:'신호가 빨간색이에요.'},
+  {k:'地図',r:'ちず',m:'지도',t:'명사',ej:'地図を見てください。',ek:'지도를 봐주세요.'},
+  {k:'荷物',r:'にもつ',m:'짐',t:'명사',ej:'荷物が多いですね。',ek:'짐이 많네요.'},
+  {k:'財布',r:'さいふ',m:'지갑',t:'명사',ej:'財布をなくしました。',ek:'지갑을 잃어버렸어요.'},
+  {k:'鍵',r:'かぎ',m:'열쇠',t:'명사',ej:'鍵を忘れました。',ek:'열쇠를 잊어버렸어요.'},
+  {k:'値段',r:'ねだん',m:'가격',t:'명사',ej:'値段を教えてください。',ek:'가격을 알려주세요.'},
+  {k:'料金',r:'りょうきん',m:'요금',t:'명사',ej:'料金はいくらですか。',ek:'요금은 얼마예요?'},
+  {k:'予定',r:'よてい',m:'예정',t:'명사',ej:'明日の予定は？',ek:'내일 예정은?'},
+  {k:'約束',r:'やくそく',m:'약속',t:'명사',ej:'約束を守ります。',ek:'약속을 지켜요.'},
+  {k:'会議',r:'かいぎ',m:'회의',t:'명사',ej:'会議が始まります。',ek:'회의가 시작돼요.'},
+  {k:'発表',r:'はっぴょう',m:'발표',t:'명사',ej:'発表の準備をします。',ek:'발표 준비를 해요.'},
+  {k:'仕事',r:'しごと',m:'일, 직업',t:'명사',ej:'仕事が終わりました。',ek:'일이 끝났어요.'},
+  {k:'給料',r:'きゅうりょう',m:'월급',t:'명사',ej:'給料が上がりました。',ek:'월급이 올랐어요.'},
+  {k:'健康',r:'けんこう',m:'건강',t:'명사',ej:'健康が大切です。',ek:'건강이 중요해요.'},
+  {k:'病気',r:'びょうき',m:'병',t:'명사',ej:'病気になりました。',ek:'병이 났어요.'},
+  {k:'薬',r:'くすり',m:'약',t:'명사',ej:'薬を飲みます。',ek:'약을 먹어요.'},
+  {k:'事故',r:'じこ',m:'사고',t:'명사',ej:'事故に気をつけて。',ek:'사고 조심해요.'},
+  {k:'環境',r:'かんきょう',m:'환경',t:'명사',ej:'環境を守りましょう。',ek:'환경을 지킵시다.'},
+  {k:'教育',r:'きょういく',m:'교육',t:'명사',ej:'教育が大切です。',ek:'교육이 중요해요.'},
+  {k:'習慣',r:'しゅうかん',m:'습관',t:'명사',ej:'いい習慣をつけましょう。',ek:'좋은 습관을 기릅시다.'},
+  {k:'趣味',r:'しゅみ',m:'취미',t:'명사',ej:'趣味は読書です。',ek:'취미는 독서예요.'},
+  {k:'音楽',r:'おんがく',m:'음악',t:'명사',ej:'音楽を聴きます。',ek:'음악을 들어요.'},
+  {k:'映画',r:'えいが',m:'영화',t:'명사',ej:'映画を見ました。',ek:'영화를 봤어요.'},
+  {k:'料理',r:'りょうり',m:'요리',t:'명사',ej:'料理が上手です。',ek:'요리를 잘해요.'},
+  {k:'味',r:'あじ',m:'맛',t:'명사',ej:'味はどうですか。',ek:'맛이 어때요?'},
+  {k:'運動',r:'うんどう',m:'운동',t:'명사',ej:'毎日運動します。',ek:'매일 운동해요.'},
+  {k:'試合',r:'しあい',m:'시합',t:'명사',ej:'試合に勝ちました。',ek:'시합에서 이겼어요.'},
+  {k:'成功',r:'せいこう',m:'성공',t:'명사',ej:'成功を祈っています。',ek:'성공을 빌어요.'},
+  {k:'失敗',r:'しっぱい',m:'실패',t:'명사',ej:'失敗から学びます。',ek:'실패에서 배워요.'},
+  {k:'夢',r:'ゆめ',m:'꿈',t:'명사',ej:'夢をあきらめません。',ek:'꿈을 포기하지 않아요.'},
+  {k:'目標',r:'もくひょう',m:'목표',t:'명사',ej:'目標を決めました。',ek:'목표를 정했어요.'},
+  {k:'努力',r:'どりょく',m:'노력',t:'명사',ej:'努力が大切です。',ek:'노력이 중요해요.'},
+  {k:'性格',r:'せいかく',m:'성격',t:'명사',ej:'性格がいいです。',ek:'성격이 좋아요.'},
+  {k:'態度',r:'たいど',m:'태도',t:'명사',ej:'態度を改めます。',ek:'태도를 고쳐요.'},
+  {k:'記念',r:'きねん',m:'기념',t:'명사',ej:'記念写真を撮りましょう。',ek:'기념사진을 찍읍시다.'},
+  {k:'内容',r:'ないよう',m:'내용',t:'명사',ej:'内容を確認します。',ek:'내용을 확인해요.'},
+  {k:'玄関',r:'げんかん',m:'현관',t:'명사',ej:'玄関で待っています。',ek:'현관에서 기다리고 있어요.'},
+  {k:'階段',r:'かいだん',m:'계단',t:'명사',ej:'階段で上ります。',ek:'계단으로 올라가요.'},
+  {k:'駐車場',r:'ちゅうしゃじょう',m:'주차장',t:'명사',ej:'駐車場はあちらです。',ek:'주차장은 저쪽이에요.'},
+  {k:'割引',r:'わりびき',m:'할인',t:'명사',ej:'割引がありますか。',ek:'할인이 있나요?'},
+  {k:'締め切り',r:'しめきり',m:'마감',t:'명사',ej:'締め切りはいつですか。',ek:'마감은 언제예요?'},
+  {k:'報告',r:'ほうこく',m:'보고',t:'명사',ej:'報告書を書きます。',ek:'보고서를 써요.'},
+  {k:'体重',r:'たいじゅう',m:'체중',t:'명사',ej:'体重を量ります。',ek:'체중을 재요.'},
+  {k:'地震',r:'じしん',m:'지진',t:'명사',ej:'地震がありました。',ek:'지진이 있었어요.'},
+  {k:'台風',r:'たいふう',m:'태풍',t:'명사',ej:'台風が来ます。',ek:'태풍이 와요.'},
+  {k:'政治',r:'せいじ',m:'정치',t:'명사',ej:'政治に興味があります。',ek:'정치에 관심이 있어요.'},
+  {k:'経済',r:'けいざい',m:'경제',t:'명사',ej:'経済が難しいです。',ek:'경제가 어려워요.'},
+  {k:'芸術',r:'げいじゅつ',m:'예술',t:'명사',ej:'芸術が好きです。',ek:'예술을 좋아해요.'},
+  {k:'番組',r:'ばんぐみ',m:'프로그램',t:'명사',ej:'好きな番組は何ですか。',ek:'좋아하는 프로그램이 뭐예요?'},
+  {k:'材料',r:'ざいりょう',m:'재료',t:'명사',ej:'材料を用意します。',ek:'재료를 준비해요.'},
+  {k:'選手',r:'せんしゅ',m:'선수',t:'명사',ej:'あの選手はすごいです。',ek:'저 선수는 대단해요.'},
+  {k:'才能',r:'さいのう',m:'재능',t:'명사',ej:'才能があります。',ek:'재능이 있어요.'},
+  {k:'礼儀',r:'れいぎ',m:'예의',t:'명사',ej:'礼儀を守ります。',ek:'예의를 지켜요.'},
+  {k:'優勝',r:'ゆうしょう',m:'우승',t:'명사',ej:'優勝おめでとう！',ek:'우승 축하해요!'},
+  {k:'体温',r:'たいおん',m:'체온',t:'명사',ej:'体温を測ります。',ek:'체온을 재요.'},
+  {k:'食欲',r:'しょくよく',m:'식욕',t:'명사',ej:'食欲がありません。',ek:'식욕이 없어요.'},
+  {k:'宗教',r:'しゅうきょう',m:'종교',t:'명사',ej:'宗教を尊重します。',ek:'종교를 존중해요.'},
+  {k:'記事',r:'きじ',m:'기사',t:'명사',ej:'新聞の記事を読みました。',ek:'신문 기사를 읽었어요.'},
+  {k:'品物',r:'しなもの',m:'물건',t:'명사',ej:'この品物はいくらですか。',ek:'이 물건은 얼마예요?'},
+  // 동사
+  {k:'始める',r:'はじめる',m:'시작하다',t:'동사',ej:'勉強を始めましょう。',ek:'공부를 시작합시다.'},
+  {k:'終わる',r:'おわる',m:'끝나다',t:'동사',ej:'仕事が終わりました。',ek:'일이 끝났어요.'},
+  {k:'決める',r:'きめる',m:'결정하다',t:'동사',ej:'何を食べるか決めました。',ek:'무엇을 먹을지 결정했어요.'},
+  {k:'集める',r:'あつめる',m:'모으다',t:'동사',ej:'情報を集めています。',ek:'정보를 모으고 있어요.'},
+  {k:'調べる',r:'しらべる',m:'조사하다',t:'동사',ej:'インターネットで調べました。',ek:'인터넷으로 조사했어요.'},
+  {k:'伝える',r:'つたえる',m:'전하다',t:'동사',ej:'気持ちを伝えます。',ek:'기분을 전해요.'},
+  {k:'比べる',r:'くらべる',m:'비교하다',t:'동사',ej:'二つを比べましょう。',ek:'둘을 비교합시다.'},
+  {k:'気づく',r:'きづく',m:'알아차리다',t:'동사',ej:'間違いに気づきました。',ek:'실수를 알아차렸어요.'},
+  {k:'続ける',r:'つづける',m:'계속하다',t:'동사',ej:'練習を続けましょう。',ek:'연습을 계속합시다.'},
+  {k:'送る',r:'おくる',m:'보내다',t:'동사',ej:'メールを送りました。',ek:'메일을 보냈어요.'},
+  {k:'受ける',r:'うける',m:'받다, 시험 보다',t:'동사',ej:'試験を受けます。',ek:'시험을 봐요.'},
+  {k:'選ぶ',r:'えらぶ',m:'선택하다',t:'동사',ej:'色を選んでください。',ek:'색을 선택해 주세요.'},
+  {k:'驚く',r:'おどろく',m:'놀라다',t:'동사',ej:'その話に驚きました。',ek:'그 이야기에 놀랐어요.'},
+  {k:'笑う',r:'わらう',m:'웃다',t:'동사',ej:'みんなで笑いました。',ek:'모두 함께 웃었어요.'},
+  {k:'急ぐ',r:'いそぐ',m:'서두르다',t:'동사',ej:'急いでください。',ek:'서둘러 주세요.'},
+  {k:'困る',r:'こまる',m:'곤란하다',t:'동사',ej:'どうしたらいいか困っています。',ek:'어떻게 해야 할지 곤란해요.'},
+  {k:'断る',r:'ことわる',m:'거절하다',t:'동사',ej:'お誘いを断りました。',ek:'초대를 거절했어요.'},
+  {k:'泊まる',r:'とまる',m:'묵다',t:'동사',ej:'ホテルに泊まります。',ek:'호텔에 묵어요.'},
+  {k:'迎える',r:'むかえる',m:'맞이하다',t:'동사',ej:'駅まで迎えに行きます。',ek:'역까지 마중 나가요.'},
+  {k:'変える',r:'かえる',m:'바꾸다',t:'동사',ej:'計画を変えました。',ek:'계획을 바꿨어요.'},
+  {k:'増える',r:'ふえる',m:'늘다',t:'동사',ej:'仕事が増えました。',ek:'일이 늘었어요.'},
+  {k:'減る',r:'へる',m:'줄다',t:'동사',ej:'時間が減りました。',ek:'시간이 줄었어요.'},
+  {k:'壊れる',r:'こわれる',m:'부서지다',t:'동사',ej:'パソコンが壊れました。',ek:'컴퓨터가 고장났어요.'},
+  {k:'直す',r:'なおす',m:'고치다',t:'동사',ej:'間違いを直します。',ek:'실수를 고쳐요.'},
+  {k:'片付ける',r:'かたづける',m:'정리하다',t:'동사',ej:'部屋を片付けます。',ek:'방을 정리해요.'},
+  {k:'押す',r:'おす',m:'누르다',t:'동사',ej:'ボタンを押してください。',ek:'버튼을 눌러주세요.'},
+  {k:'引く',r:'ひく',m:'당기다',t:'동사',ej:'ドアを引いてください。',ek:'문을 당겨주세요.'},
+  {k:'開ける',r:'あける',m:'열다',t:'동사',ej:'窓を開けてください。',ek:'창문을 열어주세요.'},
+  {k:'閉める',r:'しめる',m:'닫다',t:'동사',ej:'ドアを閉めてください。',ek:'문을 닫아주세요.'},
+  {k:'切る',r:'きる',m:'자르다',t:'동사',ej:'紙を切ります。',ek:'종이를 잘라요.'},
+  {k:'運ぶ',r:'はこぶ',m:'나르다',t:'동사',ej:'荷物を運びます。',ek:'짐을 나릅니다.'},
+  {k:'渡す',r:'わたす',m:'건네주다',t:'동사',ej:'資料を渡します。',ek:'자료를 건네줘요.'},
+  {k:'確認する',r:'かくにんする',m:'확인하다',t:'동사',ej:'内容を確認します。',ek:'내용을 확인해요.'},
+  {k:'注文する',r:'ちゅうもんする',m:'주문하다',t:'동사',ej:'料理を注文します。',ek:'요리를 주문해요.'},
+  {k:'相談する',r:'そうだんする',m:'상담하다',t:'동사',ej:'先生に相談します。',ek:'선생님께 상담해요.'},
+  {k:'紹介する',r:'しょうかいする',m:'소개하다',t:'동사',ej:'友達を紹介します。',ek:'친구를 소개해요.'},
+  {k:'利用する',r:'りようする',m:'이용하다',t:'동사',ej:'バスを利用します。',ek:'버스를 이용해요.'},
+  {k:'参加する',r:'さんかする',m:'참가하다',t:'동사',ej:'イベントに参加します。',ek:'이벤트에 참가해요.'},
+  {k:'予約する',r:'よやくする',m:'예약하다',t:'동사',ej:'席を予約します。',ek:'자리를 예약해요.'},
+  {k:'準備する',r:'じゅんびする',m:'준비하다',t:'동사',ej:'旅行を準備します。',ek:'여행을 준비해요.'},
+  {k:'発表する',r:'はっぴょうする',m:'발표하다',t:'동사',ej:'結果を発表します。',ek:'결과를 발표해요.'},
+  {k:'卒業する',r:'そつぎょうする',m:'졸업하다',t:'동사',ej:'大学を卒業しました。',ek:'대학을 졸업했어요.'},
+  {k:'就職する',r:'しゅうしょくする',m:'취직하다',t:'동사',ej:'会社に就職しました。',ek:'회사에 취직했어요.'},
+  {k:'結婚する',r:'けっこんする',m:'결혼하다',t:'동사',ej:'来年結婚します。',ek:'내년에 결혼해요.'},
+  {k:'謝る',r:'あやまる',m:'사과하다',t:'동사',ej:'すぐに謝りました。',ek:'바로 사과했어요.'},
+  {k:'許す',r:'ゆるす',m:'용서하다',t:'동사',ej:'許してください。',ek:'용서해 주세요.'},
+  {k:'助ける',r:'たすける',m:'돕다',t:'동사',ej:'困っている人を助けます。',ek:'어려운 사람을 도와요.'},
+  {k:'信じる',r:'しんじる',m:'믿다',t:'동사',ej:'あなたを信じます。',ek:'당신을 믿어요.'},
+  {k:'悩む',r:'なやむ',m:'고민하다',t:'동사',ej:'進路を悩んでいます。',ek:'진로를 고민하고 있어요.'},
+  {k:'諦める',r:'あきらめる',m:'포기하다',t:'동사',ej:'夢を諦めません。',ek:'꿈을 포기하지 않아요.'},
+  {k:'頑張る',r:'がんばる',m:'열심히 하다',t:'동사',ej:'試験を頑張ります。',ek:'시험을 열심히 해요.'},
+  {k:'楽しむ',r:'たのしむ',m:'즐기다',t:'동사',ej:'旅行を楽しみます。',ek:'여행을 즐겨요.'},
+  {k:'忘れる',r:'わすれる',m:'잊다',t:'동사',ej:'名前を忘れました。',ek:'이름을 잊었어요.'},
+  {k:'覚える',r:'おぼえる',m:'기억하다',t:'동사',ej:'単語を覚えます。',ek:'단어를 외워요.'},
+  {k:'教える',r:'おしえる',m:'가르치다',t:'동사',ej:'日本語を教えます。',ek:'일본어를 가르쳐요.'},
+  {k:'習う',r:'ならう',m:'배우다',t:'동사',ej:'ピアノを習っています。',ek:'피아노를 배우고 있어요.'},
+  {k:'失う',r:'うしなう',m:'잃다',t:'동사',ej:'仕事を失いました。',ek:'일을 잃었어요.'},
+  {k:'続く',r:'つづく',m:'계속되다',t:'동사',ej:'雨が続いています。',ek:'비가 계속 내려요.'},
+  {k:'変わる',r:'かわる',m:'바뀌다',t:'동사',ej:'計画が変わりました。',ek:'계획이 바뀌었어요.'},
+  {k:'集まる',r:'あつまる',m:'모이다',t:'동사',ej:'公園に集まりましょう。',ek:'공원에 모입시다.'},
+  {k:'別れる',r:'わかれる',m:'헤어지다',t:'동사',ej:'駅で別れました。',ek:'역에서 헤어졌어요.'},
+  {k:'乗り換える',r:'のりかえる',m:'갈아타다',t:'동사',ej:'渋谷で乗り換えます。',ek:'시부야에서 갈아타요.'},
+  {k:'戻る',r:'もどる',m:'돌아오다',t:'동사',ej:'すぐに戻ります。',ek:'곧 돌아와요.'},
+  {k:'向かう',r:'むかう',m:'향하다',t:'동사',ej:'会社に向かいます。',ek:'회사로 향해요.'},
+  {k:'渡る',r:'わたる',m:'건너다',t:'동사',ej:'橋を渡ります。',ek:'다리를 건너요.'},
+  {k:'止まる',r:'とまる',m:'멈추다',t:'동사',ej:'バスが止まりました。',ek:'버스가 멈췄어요.'},
+  {k:'動く',r:'うごく',m:'움직이다',t:'동사',ej:'電車が動いています。',ek:'전철이 움직이고 있어요.'},
+  {k:'思い出す',r:'おもいだす',m:'떠올리다',t:'동사',ej:'昔のことを思い出しました。',ek:'옛날 일이 떠올랐어요.'},
+  {k:'落とす',r:'おとす',m:'떨어뜨리다',t:'동사',ej:'財布を落としました。',ek:'지갑을 떨어뜨렸어요.'},
+  {k:'拾う',r:'ひろう',m:'줍다',t:'동사',ej:'ゴミを拾います。',ek:'쓰레기를 주워요.'},
+  {k:'並ぶ',r:'ならぶ',m:'줄서다',t:'동사',ej:'列に並んでください。',ek:'줄에 서주세요.'},
+  {k:'回る',r:'まわる',m:'돌다',t:'동사',ej:'観光地を回りました。',ek:'관광지를 돌았어요.'},
+  {k:'寄る',r:'よる',m:'들르다',t:'동사',ej:'帰りにコンビニに寄ります。',ek:'돌아오는 길에 편의점에 들러요.'},
+  {k:'通る',r:'とおる',m:'지나가다',t:'동사',ej:'この道を通ります。',ek:'이 길로 지나가요.'},
+  {k:'引っ越す',r:'ひっこす',m:'이사하다',t:'동사',ej:'来月引っ越します。',ek:'다음 달 이사해요.'},
+  {k:'迷う',r:'まよう',m:'망설이다',t:'동사',ej:'どちらにするか迷っています。',ek:'어떤 것으로 할지 망설여요.'},
+  {k:'得る',r:'える',m:'얻다',t:'동사',ej:'経験を得ました。',ek:'경험을 얻었어요.'},
+  {k:'残る',r:'のこる',m:'남다',t:'동사',ej:'時間が残っています。',ek:'시간이 남아 있어요.'},
+  {k:'喧嘩する',r:'けんかする',m:'싸우다',t:'동사',ej:'友達と喧嘩しました。',ek:'친구와 싸웠어요.'},
+  {k:'研究する',r:'けんきゅうする',m:'연구하다',t:'동사',ej:'この問題を研究します。',ek:'이 문제를 연구해요.'},
+  {k:'倒れる',r:'たおれる',m:'쓰러지다',t:'동사',ej:'疲れて倒れました。',ek:'지쳐서 쓰러졌어요.'},
+  {k:'泣く',r:'なく',m:'울다',t:'동사',ej:'映画を見て泣きました。',ek:'영화를 보고 울었어요.'},
+  {k:'試す',r:'ためす',m:'시도하다',t:'동사',ej:'新しい方法を試します。',ek:'새로운 방법을 시도해요.'},
+  // 형용사
+  {k:'安全',r:'あんぜん',m:'안전함',t:'형용사',ej:'この道は安全です。',ek:'이 길은 안전해요.'},
+  {k:'便利',r:'べんり',m:'편리함',t:'형용사',ej:'スマホはとても便利です。',ek:'스마트폰은 매우 편리해요.'},
+  {k:'丁寧',r:'ていねい',m:'정중함',t:'형용사',ej:'丁寧に話してください。',ek:'공손하게 말해 주세요.'},
+  {k:'自由',r:'じゆう',m:'자유로움',t:'형용사',ej:'自由な時間があります。',ek:'자유 시간이 있어요.'},
+  {k:'複雑',r:'ふくざつ',m:'복잡함',t:'형용사',ej:'この問題は複雑です。',ek:'이 문제는 복잡해요.'},
+  {k:'必要',r:'ひつよう',m:'필요함',t:'형용사',ej:'水が必要です。',ek:'물이 필요해요.'},
+  {k:'大切',r:'たいせつ',m:'소중함',t:'형용사',ej:'家族は大切です。',ek:'가족은 소중해요.'},
+  {k:'得意',r:'とくい',m:'잘함',t:'형용사',ej:'料理が得意です。',ek:'요리를 잘해요.'},
+  {k:'苦手',r:'にがて',m:'서툼',t:'형용사',ej:'数学が苦手です。',ek:'수학을 못해요.'},
+  {k:'有名',r:'ゆうめい',m:'유명함',t:'형용사',ej:'有名な場所です。',ek:'유명한 곳이에요.'},
+  {k:'親切',r:'しんせつ',m:'친절함',t:'형용사',ej:'親切な人ですね。',ek:'친절한 사람이네요.'},
+  {k:'正直',r:'しょうじき',m:'솔직함',t:'형용사',ej:'正直に言います。',ek:'솔직하게 말해요.'},
+  {k:'真剣',r:'しんけん',m:'진지함',t:'형용사',ej:'真剣に考えています。',ek:'진지하게 생각해요.'},
+  {k:'熱心',r:'ねっしん',m:'열심히 함',t:'형용사',ej:'熱心に勉強します。',ek:'열심히 공부해요.'},
+  {k:'真面目',r:'まじめ',m:'성실함',t:'형용사',ej:'真面目な学生です。',ek:'성실한 학생이에요.'},
+  {k:'上手',r:'じょうず',m:'능숙함',t:'형용사',ej:'英語が上手ですね。',ek:'영어를 잘하네요.'},
+  {k:'下手',r:'へた',m:'서툼',t:'형용사',ej:'歌が下手です。',ek:'노래를 못해요.'},
+  {k:'暖かい',r:'あたたかい',m:'따뜻함',t:'형용사',ej:'今日は暖かいです。',ek:'오늘은 따뜻해요.'},
+  {k:'涼しい',r:'すずしい',m:'시원함',t:'형용사',ej:'風が涼しいです。',ek:'바람이 시원해요.'},
+  {k:'眠い',r:'ねむい',m:'졸림',t:'형용사',ej:'今日は眠いです。',ek:'오늘은 졸려요.'},
+  {k:'痛い',r:'いたい',m:'아픔',t:'형용사',ej:'頭が痛いです。',ek:'머리가 아파요.'},
+  {k:'嬉しい',r:'うれしい',m:'기쁨',t:'형용사',ej:'合格して嬉しいです。',ek:'합격해서 기뻐요.'},
+  {k:'悲しい',r:'かなしい',m:'슬픔',t:'형용사',ej:'別れが悲しいです。',ek:'이별이 슬퍼요.'},
+  {k:'恥ずかしい',r:'はずかしい',m:'부끄러움',t:'형용사',ej:'人前で恥ずかしいです。',ek:'사람들 앞에서 부끄러워요.'},
+  {k:'懐かしい',r:'なつかしい',m:'그리움',t:'형용사',ej:'故郷が懐かしいです。',ek:'고향이 그리워요.'},
+  {k:'羨ましい',r:'うらやましい',m:'부러움',t:'형용사',ej:'旅行できて羨ましいです。',ek:'여행할 수 있어서 부러워요.'},
+  {k:'詳しい',r:'くわしい',m:'자세함',t:'형용사',ej:'詳しく説明します。',ek:'자세하게 설명해요.'},
+  {k:'珍しい',r:'めずらしい',m:'드묾',t:'형용사',ej:'珍しい花ですね。',ek:'드문 꽃이네요.'},
+  {k:'正しい',r:'ただしい',m:'올바름',t:'형용사',ej:'正しい答えです。',ek:'올바른 답이에요.'},
+  {k:'厳しい',r:'きびしい',m:'엄격함',t:'형용사',ej:'先生は厳しいです。',ek:'선생님은 엄격해요.'},
+  {k:'優しい',r:'やさしい',m:'친절함, 다정함',t:'형용사',ej:'優しい人ですね。',ek:'다정한 사람이네요.'},
+  {k:'賢い',r:'かしこい',m:'똑똑함',t:'형용사',ej:'賢い子供ですね。',ek:'똑똑한 아이네요.'},
+  {k:'遅い',r:'おそい',m:'느림',t:'형용사',ej:'電車が遅いです。',ek:'전철이 느려요.'},
+  {k:'速い',r:'はやい',m:'빠름',t:'형용사',ej:'新幹線は速いです。',ek:'신칸센은 빨라요.'},
+  {k:'重い',r:'おもい',m:'무거움',t:'형용사',ej:'荷物が重いです。',ek:'짐이 무거워요.'},
+  {k:'軽い',r:'かるい',m:'가벼움',t:'형용사',ej:'このバッグは軽いです。',ek:'이 가방은 가벼워요.'},
+  {k:'深い',r:'ふかい',m:'깊음',t:'형용사',ej:'海は深いです。',ek:'바다는 깊어요.'},
+  {k:'狭い',r:'せまい',m:'좁음',t:'형용사',ej:'部屋が狭いです。',ek:'방이 좁아요.'},
+  {k:'広い',r:'ひろい',m:'넓음',t:'형용사',ej:'公園が広いです。',ek:'공원이 넓어요.'},
+  {k:'暗い',r:'くらい',m:'어두움',t:'형용사',ej:'部屋が暗いです。',ek:'방이 어두워요.'},
+  {k:'明るい',r:'あかるい',m:'밝음',t:'형용사',ej:'明るい部屋ですね。',ek:'밝은 방이네요.'},
+  {k:'静か',r:'しずか',m:'조용함',t:'형용사',ej:'この辺は静かです。',ek:'이 근처는 조용해요.'},
+  {k:'賑やか',r:'にぎやか',m:'활기참',t:'형용사',ej:'駅前が賑やかです。',ek:'역 앞이 활기차요.'},
+  {k:'清潔',r:'せいけつ',m:'청결함',t:'형용사',ej:'清潔な部屋が好きです。',ek:'청결한 방을 좋아해요.'},
+  {k:'十分',r:'じゅうぶん',m:'충분함',t:'형용사',ej:'時間が十分あります。',ek:'시간이 충분히 있어요.'},
+  {k:'大変',r:'たいへん',m:'힘듦',t:'형용사',ej:'仕事が大変です。',ek:'일이 힘들어요.'},
+  {k:'簡単',r:'かんたん',m:'간단함',t:'형용사',ej:'この問題は簡単です。',ek:'이 문제는 간단해요.'},
+  {k:'難しい',r:'むずかしい',m:'어려움',t:'형용사',ej:'日本語は難しいです。',ek:'일본어는 어려워요.'},
+  {k:'大丈夫',r:'だいじょうぶ',m:'괜찮음',t:'형용사',ej:'大丈夫ですか？',ek:'괜찮아요?'},
+  {k:'残念',r:'ざんねん',m:'아쉬움',t:'형용사',ej:'残念ですね。',ek:'아쉽네요.'},
+  {k:'素直',r:'すなお',m:'순수함',t:'형용사',ej:'素直な子供ですね。',ek:'순수한 아이네요.'},
+  {k:'面倒',r:'めんどう',m:'귀찮음',t:'형용사',ej:'面倒なことは嫌いです。',ek:'귀찮은 건 싫어요.'},
+  {k:'適切',r:'てきせつ',m:'적절함',t:'형용사',ej:'適切な表現を選びます。',ek:'적절한 표현을 선택해요.'},
+  // 부사
+  {k:'特に',r:'とくに',m:'특히',t:'부사',ej:'特に問題はありません。',ek:'특히 문제는 없어요.'},
+  {k:'必ず',r:'かならず',m:'반드시',t:'부사',ej:'必ず来てください。',ek:'반드시 와 주세요.'},
+  {k:'急に',r:'きゅうに',m:'갑자기',t:'부사',ej:'急に雨が降りました。',ek:'갑자기 비가 왔어요.'},
+  {k:'最近',r:'さいきん',m:'최근',t:'부사',ej:'最近忙しいですか。',ek:'요즘 바쁘세요?'},
+  {k:'少し',r:'すこし',m:'조금',t:'부사',ej:'少し待ってください。',ek:'조금 기다려 주세요.'},
+  {k:'もっと',r:'もっと',m:'더욱',t:'부사',ej:'もっとゆっくり話して。',ek:'더 천천히 말해 주세요.'},
+  {k:'やっと',r:'やっと',m:'겨우, 드디어',t:'부사',ej:'やっと終わりました。',ek:'겨우 끝났어요.'},
+  {k:'ずっと',r:'ずっと',m:'쭉, 계속',t:'부사',ej:'ずっと待っていました。',ek:'계속 기다리고 있었어요.'},
+  {k:'なかなか',r:'なかなか',m:'꽤, 좀처럼',t:'부사',ej:'なかなか難しいですね。',ek:'꽤 어렵네요.'},
+  {k:'だいぶ',r:'だいぶ',m:'상당히',t:'부사',ej:'だいぶ上手になりました。',ek:'상당히 잘하게 됐어요.'},
+  {k:'丁度',r:'ちょうど',m:'딱, 마침',t:'부사',ej:'丁度いい大きさです。',ek:'딱 좋은 크기예요.'},
+  {k:'もし',r:'もし',m:'만약',t:'부사',ej:'もし時間があれば来て。',ek:'만약 시간이 있으면 와 주세요.'},
+  {k:'せっかく',r:'せっかく',m:'모처럼',t:'부사',ej:'せっかく来たのに。',ek:'모처럼 왔는데.'},
+  {k:'いよいよ',r:'いよいよ',m:'드디어',t:'부사',ej:'いよいよ試験です。',ek:'드디어 시험이에요.'},
+  {k:'まだ',r:'まだ',m:'아직',t:'부사',ej:'まだ終わっていません。',ek:'아직 끝나지 않았어요.'},
+  {k:'もう',r:'もう',m:'이미, 벌써',t:'부사',ej:'もう食べました。',ek:'이미 먹었어요.'},
+  {k:'また',r:'また',m:'또, 다시',t:'부사',ej:'また会いましょう。',ek:'또 만납시다.'},
+  {k:'ぜひ',r:'ぜひ',m:'꼭, 부디',t:'부사',ej:'ぜひ来てください。',ek:'꼭 와 주세요.'},
+  {k:'きっと',r:'きっと',m:'틀림없이',t:'부사',ej:'きっと大丈夫です。',ek:'틀림없이 괜찮아요.'},
+  {k:'たぶん',r:'たぶん',m:'아마',t:'부사',ej:'たぶん雨が降ります。',ek:'아마 비가 올 거예요.'},
+  {k:'もちろん',r:'もちろん',m:'물론',t:'부사',ej:'もちろん行きます。',ek:'물론 가요.'},
+  {k:'実は',r:'じつは',m:'사실은',t:'부사',ej:'実は知っています。',ek:'사실은 알고 있어요.'},
+  {k:'確かに',r:'たしかに',m:'확실히',t:'부사',ej:'確かにそうですね。',ek:'확실히 그렇네요.'},
+  {k:'全然',r:'ぜんぜん',m:'전혀',t:'부사',ej:'全然わかりません。',ek:'전혀 모르겠어요.'},
+  {k:'全部',r:'ぜんぶ',m:'전부',t:'부사',ej:'全部食べました。',ek:'전부 먹었어요.'},
+  {k:'一緒に',r:'いっしょに',m:'함께',t:'부사',ej:'一緒に行きましょう。',ek:'함께 갑시다.'},
+  {k:'直接',r:'ちょくせつ',m:'직접',t:'부사',ej:'直接話しましょう。',ek:'직접 이야기합시다.'},
+  {k:'急いで',r:'いそいで',m:'서둘러',t:'부사',ej:'急いで来てください。',ek:'서둘러 와 주세요.'},
+  {k:'ゆっくり',r:'ゆっくり',m:'천천히',t:'부사',ej:'ゆっくり話してください。',ek:'천천히 말해 주세요.'},
+  {k:'突然',r:'とつぜん',m:'갑자기',t:'부사',ej:'突然電話がありました。',ek:'갑자기 전화가 왔어요.'},
+  {k:'さっき',r:'さっき',m:'아까',t:'부사',ej:'さっき来ました。',ek:'아까 왔어요.'},
+  {k:'後で',r:'あとで',m:'나중에',t:'부사',ej:'後で話しましょう。',ek:'나중에 이야기해요.'},
+  {k:'すぐに',r:'すぐに',m:'바로',t:'부사',ej:'すぐに来てください。',ek:'바로 와 주세요.'},
+  {k:'ようやく',r:'ようやく',m:'겨우, 마침내',t:'부사',ej:'ようやく完成しました。',ek:'겨우 완성됐어요.'},
+  {k:'次第に',r:'しだいに',m:'점점',t:'부사',ej:'次第に上手になります。',ek:'점점 잘하게 돼요.'},
+  {k:'一応',r:'いちおう',m:'일단',t:'부사',ej:'一応確認します。',ek:'일단 확인해요.'},
+  {k:'改めて',r:'あらためて',m:'다시, 새삼',t:'부사',ej:'改めてお礼を言います。',ek:'다시 한번 감사드려요.'},
+  {k:'どうせ',r:'どうせ',m:'어차피',t:'부사',ej:'どうせやるなら早くしよう。',ek:'어차피 할 거면 빨리 하자.'},
+  {k:'どうも',r:'どうも',m:'아무래도, 감사',t:'부사',ej:'どうもありがとう。',ek:'정말 감사해요.'},
+];
+
+// ── 상수 & 키 ──────────────────────────────────────────────────────────────
+const DAILY_SIZE = 25;
+const RECORD_KEY = 'jlpt_n4_records_v2';
+const PROGRESS_KEY = 'jlpt_n4_progress_v2';
+const WRONG_KEY = 'jlpt_n4_wrong_v2';
+
+// ── 상태 ──────────────────────────────────────────────────────────────────
+let currentMode = 'daily'; // 'daily' | 'all' | 'review'
+let deck = [], againQueue = [];
+let currentCard = null;
+let flipped = false;
+let doneCount = 0, againCount = 0;
+let sessionWrong = []; // 이번 세션 틀린 단어
+let jpVoice = null;
+
+// ── 초기화 ────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  loadVoice();
+  updateReviewCount();
+  setMode('daily');
+  renderRecord();
+});
+
+// ── 발음 ──────────────────────────────────────────────────────────────────
+function loadVoice() {
+  const set = () => {
+    const vs = speechSynthesis.getVoices();
+    jpVoice = vs.find(v => v.lang==='ja-JP') || vs.find(v => v.lang.startsWith('ja')) || null;
+  };
+  set();
+  speechSynthesis.onvoiceschanged = set;
+}
+
+function speakWord(e) {
+  e.stopPropagation();
+  if (!currentCard) return;
+  const btn = e.currentTarget;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(currentCard.r || currentCard.k);
+  u.lang = 'ja-JP';
+  if (jpVoice) u.voice = jpVoice;
+  u.rate = 0.85;
+  btn.classList.add('speaking');
+  u.onend = u.onerror = () => btn.classList.remove('speaking');
+  speechSynthesis.speak(u);
+}
+
+// ── 진도 관리 ──────────────────────────────────────────────────────────────
+function todayKey() { return new Date().toISOString().slice(0,10); }
+
+function getProgress() {
+  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {dayIndex:0, lastDate:''}; }
+  catch { return {dayIndex:0, lastDate:''}; }
+}
+
+function saveProgress(p) {
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch(e) {}
+}
+
+function getTodayWords() {
+  const p = getProgress();
+  const today = todayKey();
+
+  // 날짜가 바뀌면 다음 25개로 진행
+  if (p.lastDate !== today && p.lastDate !== '') {
+    p.dayIndex = (p.dayIndex + 1) % Math.ceil(WORDS.length / DAILY_SIZE);
+    p.lastDate = today;
+    saveProgress(p);
+  } else if (p.lastDate === '') {
+    p.lastDate = today;
+    saveProgress(p);
+  }
+
+  const start = (p.dayIndex * DAILY_SIZE) % WORDS.length;
+  const end = Math.min(start + DAILY_SIZE, WORDS.length);
+  const slice = WORDS.slice(start, end);
+
+  // 부족하면 처음부터 채움
+  if (slice.length < DAILY_SIZE) {
+    slice.push(...WORDS.slice(0, DAILY_SIZE - slice.length));
+  }
+
+  return { words: slice, start: start+1, end: Math.min(start+DAILY_SIZE, WORDS.length), dayIndex: p.dayIndex };
+}
+
+// ── 오답 관리 ─────────────────────────────────────────────────────────────
+function getWrongWords() {
+  try { return JSON.parse(localStorage.getItem(WRONG_KEY)) || []; }
+  catch { return []; }
+}
+
+function addWrongWords(words) {
+  const existing = getWrongWords();
+  const existKeys = new Set(existing.map(w => w.k+w.r));
+  const newOnes = words.filter(w => !existKeys.has(w.k+w.r));
+  const merged = [...existing, ...newOnes].slice(-200); // 최대 200개
+  try { localStorage.setItem(WRONG_KEY, JSON.stringify(merged)); } catch(e) {}
+}
+
+function clearWrongWords() {
+  try { localStorage.removeItem(WRONG_KEY); } catch(e) {}
+}
+
+function updateReviewCount() {
+  const count = getWrongWords().length;
+  document.getElementById('review-count-label').textContent = `${count}개`;
+}
+
+// ── 모드 전환 ─────────────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  ['daily','all','review'].forEach(m => {
+    document.getElementById(`mode-${m}`).classList.toggle('active', m===mode);
+  });
+
+  const banner = document.getElementById('today-banner');
+  const statLabel = document.querySelector('#stat-total + .stat-label, .stat-label');
+
+  if (mode === 'daily') {
+    banner.style.display = 'flex';
+    const {words, start, end, dayIndex} = getTodayWords();
+    document.getElementById('today-range').textContent = `${start}~${end}번 단어`;
+    document.getElementById('today-progress').textContent = `Day ${dayIndex+1}`;
+    deck = shuffle([...words]);
+  } else if (mode === 'all') {
+    banner.style.display = 'none';
+    deck = shuffle([...WORDS]);
+  } else if (mode === 'review') {
+    banner.style.display = 'none';
+    const wrong = getWrongWords();
+    if (!wrong.length) {
+      deck = [];
+      showComplete('오답 없음', '아직 틀린 단어가 없어요.\n학습 후 틀린 단어가 여기 쌓여요 🌱', false);
+      return;
+    }
+    deck = shuffle([...wrong]);
+  }
+
+  againQueue = [];
+  doneCount = 0; againCount = 0;
+  sessionWrong = [];
+  flipped = false;
+
+  document.getElementById('card-area').style.display = 'block';
+  document.getElementById('buttons').style.display = 'grid';
+  document.getElementById('complete-screen').classList.remove('show');
+
+  updateStats();
+  nextCard();
+}
+
+function shuffle(a) {
+  for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+// ── 카드 ──────────────────────────────────────────────────────────────────
+function nextCard() {
+  document.getElementById('card').classList.remove('flipped');
+  flipped = false;
+  document.getElementById('btn-again').classList.add('btn-hidden');
+  document.getElementById('btn-good').classList.add('btn-hidden');
+
+  let next;
+  if (deck.length && againQueue.length) next = Math.random()<.8 ? deck.shift() : againQueue.shift();
+  else if (deck.length) next = deck.shift();
+  else if (againQueue.length) next = againQueue.shift();
+  else {
+    const totalCards = currentMode==='daily' ? Math.min(DAILY_SIZE,WORDS.length)
+                      : currentMode==='all' ? WORDS.length
+                      : getWrongWords().length;
+    const sub = againCount > 0
+      ? `${totalCards}개 중 ${doneCount}개 완료 ✓\n${againCount}개 복습 필요 💪`
+      : `모든 ${totalCards}개 완료! 🎉`;
+    showComplete('세션 완료!', sub, againCount > 0);
+    return;
+  }
+
+  currentCard = next;
+  const idx = WORDS.indexOf(next);
+  document.getElementById('card-num').textContent = idx >= 0 ? `#${idx+1}` : '';
+  document.getElementById('front-kanji').textContent = next.k;
+  document.getElementById('front-reading').textContent = next.r;
+  document.getElementById('card-type').textContent = next.t;
+  document.getElementById('back-kanji').textContent = next.k;
+  document.getElementById('back-reading').textContent = next.r;
+  document.getElementById('back-meaning').textContent = next.m;
+  document.getElementById('example-jp').textContent = next.ej||'';
+  document.getElementById('example-kr').textContent = next.ek||'';
+  updateStats();
+}
+
+function flipCard() {
+  if (flipped || !currentCard) return;
+  flipped = true;
+  document.getElementById('card').classList.add('flipped');
+  setTimeout(() => {
+    document.getElementById('btn-again').classList.remove('btn-hidden');
+    document.getElementById('btn-good').classList.remove('btn-hidden');
+  }, 280);
+}
+
+function grade(result) {
+  if (result === 'again') {
+    againQueue.push(currentCard);
+    againCount++;
+    if (!sessionWrong.find(w => w.k===currentCard.k)) sessionWrong.push(currentCard);
+  } else {
+    doneCount++;
+  }
+  updateStats();
+  nextCard();
+}
+
+function updateStats() {
+  const total = currentMode==='daily' ? Math.min(DAILY_SIZE,WORDS.length)
+               : currentMode==='all' ? WORDS.length
+               : getWrongWords().length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-done').textContent = doneCount;
+  document.getElementById('stat-again').textContent = againCount;
+  document.getElementById('progress-fill').style.width = total>0?(doneCount/total*100)+'%':'0%';
+  document.getElementById('deck-info').textContent = `남은 카드: ${deck.length+againQueue.length}장`;
+  document.getElementById('today-progress').textContent = `${doneCount} / ${Math.min(DAILY_SIZE,WORDS.length)}`;
+}
+
+function showComplete(title, sub, hasWrong) {
+  document.getElementById('card-area').style.display = 'none';
+  document.getElementById('buttons').style.display = 'none';
+  document.getElementById('deck-info').textContent = '';
+  document.getElementById('complete-title').textContent = title;
+  document.getElementById('complete-sub').textContent = sub;
+  document.getElementById('complete-screen').classList.add('show');
+
+  const reviewBtn = document.getElementById('btn-do-review');
+  reviewBtn.disabled = !hasWrong;
+
+  // 오답 저장 (daily/all 모드)
+  if (currentMode !== 'review' && sessionWrong.length) {
+    addWrongWords(sessionWrong);
+    updateReviewCount();
+  }
+  // 오답 모드 완료 시 오답 목록 클리어
+  if (currentMode === 'review' && doneCount > 0) {
+    clearWrongWords();
+    updateReviewCount();
+  }
+
+  saveRecord(doneCount, againCount);
+  renderRecord();
+}
+
+function restartSession() {
+  document.getElementById('card-area').style.display = 'block';
+  document.getElementById('buttons').style.display = 'grid';
+  document.getElementById('complete-screen').classList.remove('show');
+  setMode(currentMode);
+}
+
+function doReviewSession() {
+  document.getElementById('card-area').style.display = 'block';
+  document.getElementById('buttons').style.display = 'grid';
+  document.getElementById('complete-screen').classList.remove('show');
+  setMode('review');
+}
+
+// ── 학습 기록 ─────────────────────────────────────────────────────────────
+function saveRecord(done, again) {
+  const recs = getRecords();
+  const today = todayKey();
+  const ex = recs.find(r => r.date===today);
+  if (ex) { ex.done+=done; ex.again+=again; ex.sessions=(ex.sessions||1)+1; }
+  else recs.unshift({date:today, done, again, sessions:1});
+  try { localStorage.setItem(RECORD_KEY, JSON.stringify(recs.slice(0,90))); } catch(e) {}
+}
+
+function getRecords() {
+  try { return JSON.parse(localStorage.getItem(RECORD_KEY)) || []; } catch { return []; }
+}
+
+function getStreak(recs) {
+  let s=0; const now=new Date();
+  for (let i=0;i<90;i++){
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    if (recs.find(r=>r.date===d.toISOString().slice(0,10))) s++;
+    else if (i>0) break;
+  }
+  return s;
+}
+
+function renderRecord() {
+  const recs = getRecords();
+  const el = document.getElementById('record-content');
+  if (!recs.length) {
+    el.innerHTML=`<div class="no-record">아직 기록이 없어요.<br>첫 세션을 완료하면 여기 쌓여요 🌱</div>`;
+    return;
+  }
+  const streak=getStreak(recs);
+  const totalDone=recs.reduce((s,r)=>s+r.done,0);
+  const totalWords=WORDS.length;
+  const days=['일','월','화','수','목','금','토'];
+  const now=new Date();
+  let grid='';
+  for (let i=6;i>=0;i--){
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    const key=d.toISOString().slice(0,10);
+    const rec=recs.find(r=>r.date===key);
+    grid+=`<div class="day-cell ${rec?'studied':''} ${i===0?'today':''}">
+      <span class="day-label">${days[d.getDay()]}</span>
+      <span class="day-count">${rec?rec.done:'—'}</span>
+    </div>`;
+  }
+  const hist=recs.slice(0,14).map(r=>{
+    const d=new Date(r.date);
+    return `<div class="history-item">
+      <div class="history-date">${d.getMonth()+1}/${d.getDate()} · ${r.sessions||1}세션</div>
+      <div class="history-stats"><span class="h-done">✓ ${r.done}</span><span class="h-again">✗ ${r.again}</span></div>
+    </div>`;
+  }).join('');
+
+  const progressPct = Math.min((totalDone/totalWords)*100, 100).toFixed(0);
+
+  el.innerHTML=`
+    <div class="streak-card">
+      <div class="streak-flame">🔥</div>
+      <div><div class="streak-count">${streak}일 연속</div><div class="streak-label">누적 ${totalDone}개 완료</div></div>
+    </div>
+    <div class="overall-progress">
+      <div class="op-title">전체 진도 (${totalDone} / ${totalWords}개)</div>
+      <div class="op-bar-wrap"><div class="op-bar-fill" style="width:${progressPct}%"></div></div>
+      <div class="op-nums"><span>${progressPct}% 완료</span><span>Day ${getProgress().dayIndex+1} / ${Math.ceil(totalWords/DAILY_SIZE)}일</span></div>
+    </div>
+    <div class="weekly-label">이번 주</div>
+    <div class="weekly-grid">${grid}</div>
+    <div class="history-list">${hist}</div>
+    <button class="clear-btn" onclick="clearRecords()">기록 초기화</button>`;
+}
+
+function clearRecords() {
+  if (!confirm('모든 학습 기록을 삭제할까요?')) return;
+  localStorage.removeItem(RECORD_KEY);
+  localStorage.removeItem(PROGRESS_KEY);
+  localStorage.removeItem(WRONG_KEY);
+  renderRecord();
+  updateReviewCount();
+}
+
+// ── 탭 ────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>
+    b.classList.toggle('active',(tab==='study'&&i===0)||(tab==='record'&&i===1)||(tab==='guide'&&i===2)));
+  ['study','record','guide'].forEach(t=>
+    document.getElementById(`tab-${t}`).classList.toggle('active',t===tab));
+  if (tab==='record') renderRecord();
+}
+</script>
+</body>
+</html>
