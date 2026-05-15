@@ -1489,6 +1489,9 @@ function grade(result) {
     doneCount++;
   }
   updateStats();
+  // 카드 넘길 때마다 실시간 저장
+  saveRecord(doneCount, againCount);
+  if (sessionWrong.length) addWrongWords(sessionWrong);
   nextCard();
 }
 
@@ -1526,7 +1529,6 @@ function showComplete(title, sub, hasWrong) {
     updateReviewCount();
   }
 
-  saveRecord(doneCount, againCount);
   renderRecord();
 }
 
