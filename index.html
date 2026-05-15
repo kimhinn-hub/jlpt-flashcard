@@ -52,26 +52,50 @@
 
   /* 카드 */
   .card-area{perspective:1000px;margin-bottom:14px;}
-  .card{position:relative;width:100%;min-height:300px;cursor:pointer;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1);}
-  .card.flipped{transform:rotateY(180deg);}
-  .card-front,.card-back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius);border:1px solid var(--border);padding:28px 24px;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:300px;}
-  .card-front{background:var(--surface);}
-  .card-back{background:var(--surface2);transform:rotateY(180deg);justify-content:flex-start;padding-top:22px;}
+  /* 카드 - 플립 없는 단일 카드 */
+  .card-area{margin-bottom:14px;}
+  .card{
+    position:relative;width:100%;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:32px 24px 24px;
+    display:flex;flex-direction:column;align-items:center;
+    min-height:300px;
+  }
   .card-type-badge{position:absolute;top:13px;right:13px;font-size:10px;color:var(--text-dim);letter-spacing:.1em;border:1px solid var(--border);padding:3px 8px;border-radius:99px;}
   .card-num-badge{position:absolute;top:13px;left:13px;font-size:10px;color:var(--text-dim);letter-spacing:.05em;font-family:'Shippori Mincho',serif;}
   .speak-btn{background:none;border:1px solid var(--border);border-radius:99px;padding:4px 12px;color:var(--text-dim);font-size:11px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:'Noto Sans KR',sans-serif;}
   .speak-btn:hover,.speak-btn.speaking{color:var(--accent);border-color:var(--accent);}
-  .card-kanji{font-family:'Shippori Mincho',serif;font-size:52px;font-weight:700;color:var(--text);margin-bottom:10px;line-height:1;letter-spacing:.05em;}
-  .card-reading{font-family:'Noto Sans JP',sans-serif;font-size:18px;color:var(--accent);font-weight:300;letter-spacing:.15em;margin-bottom:16px;}
-  .tap-hint{font-size:11px;color:var(--text-dim);letter-spacing:.1em;margin-top:auto;}
-  .back-top{display:flex;align-items:center;gap:12px;align-self:flex-start;margin-bottom:12px;}
-  .back-kanji{font-family:'Shippori Mincho',serif;font-size:26px;color:var(--text);margin-bottom:2px;}
-  .back-reading{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--accent);letter-spacing:.12em;}
-  .divider{width:100%;height:1px;background:var(--border);margin-bottom:13px;}
-  .meaning{font-size:20px;font-weight:700;color:var(--text);align-self:flex-start;margin-bottom:13px;line-height:1.4;}
-  .example-label{font-size:10px;color:var(--text-dim);letter-spacing:.15em;align-self:flex-start;margin-bottom:6px;}
-  .example-jp{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--text-muted);align-self:flex-start;line-height:1.7;margin-bottom:3px;}
-  .example-kr{font-size:12px;color:var(--text-dim);align-self:flex-start;line-height:1.6;font-style:italic;}
+
+  /* 한자 */
+  .card-kanji{font-family:'Shippori Mincho',serif;font-size:64px;font-weight:700;color:var(--text);line-height:1;letter-spacing:.05em;margin-bottom:24px;margin-top:16px;}
+
+  /* 구분선 */
+  .card-divider{width:100%;height:1px;background:var(--border);margin-bottom:16px;}
+
+  /* 예문 영역 */
+  .card-example-jp{font-family:'Noto Sans JP',sans-serif;font-size:14px;color:var(--text-muted);line-height:1.8;text-align:center;margin-bottom:4px;}
+  .card-example-kr{font-size:12px;color:var(--text-dim);line-height:1.6;text-align:center;font-style:italic;}
+
+  /* 정답 표시 영역 */
+  .card-reveal{
+    width:100%;margin-top:16px;padding:12px 16px;
+    background:var(--surface2);border-radius:12px;border:1px solid var(--border);
+    text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;
+    transition:opacity .15s;
+  }
+  .card-reveal.hidden{opacity:0;pointer-events:none;}
+  .card-reveal-text{font-size:18px;font-weight:700;color:var(--accent);font-family:'Noto Sans JP',sans-serif;letter-spacing:.1em;}
+
+  /* 하단 탭 버튼 (의미 / 히라가나) */
+  .reveal-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:12px;}
+  .reveal-btn{
+    padding:11px;border:1px solid var(--border);border-radius:var(--radius);
+    background:none;color:var(--text-muted);
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;
+    cursor:pointer;transition:all .2s;letter-spacing:.05em;
+  }
+  .reveal-btn.active{background:rgba(200,169,110,.12);border-color:var(--accent);color:var(--accent);}
+  .reveal-btn:hover:not(.active){background:var(--surface2);}
 
   /* 버튼 */
   .buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
@@ -186,25 +210,28 @@
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
 
     <div class="card-area" id="card-area">
-      <div class="card" id="card" onclick="flipCard()">
-        <div class="card-front">
-          <div class="card-num-badge" id="card-num">—</div>
-          <button class="speak-btn" onclick="speakWord(event)" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);">🔊 발음</button>
-          <div class="card-type-badge" id="card-type">—</div>
-          <div class="card-kanji" id="front-kanji">—</div>
-          <div class="card-reading" id="front-reading">—</div>
-          <div class="tap-hint">탭해서 뜻 보기</div>
+      <div class="card" id="card">
+        <div class="card-num-badge" id="card-num">—</div>
+        <div class="card-type-badge" id="card-type">—</div>
+
+        <!-- 한자 + 발음 버튼 -->
+        <div class="card-kanji" id="front-kanji">—</div>
+        <button class="speak-btn" onclick="speakWord(event)">🔊 발음</button>
+
+        <!-- 구분선 + 예문 -->
+        <div class="card-divider" style="margin-top:20px;"></div>
+        <div class="card-example-jp" id="example-jp">—</div>
+        <div class="card-example-kr" id="example-kr" style="display:none;">—</div>
+
+        <!-- 정답 표시 박스 -->
+        <div class="card-reveal hidden" id="card-reveal">
+          <span class="card-reveal-text" id="reveal-text">—</span>
         </div>
-        <div class="card-back">
-          <div class="back-top">
-            <button class="speak-btn" onclick="speakWord(event)">🔊</button>
-            <div><div class="back-kanji" id="back-kanji">—</div><div class="back-reading" id="back-reading">—</div></div>
-          </div>
-          <div class="divider"></div>
-          <div class="meaning" id="back-meaning">—</div>
-          <div class="example-label">예문</div>
-          <div class="example-jp" id="example-jp">—</div>
-          <div class="example-kr" id="example-kr">—</div>
+
+        <!-- 의미 / 히라가나 탭 버튼 -->
+        <div class="reveal-btns">
+          <button class="reveal-btn" id="btn-meaning" onclick="revealToggle('meaning')">의미</button>
+          <button class="reveal-btn" id="btn-reading" onclick="revealToggle('reading')">히라가나</button>
         </div>
       </div>
     </div>
@@ -220,8 +247,8 @@
     </div>
 
     <div class="buttons" id="buttons">
-      <button class="btn btn-again btn-hidden" id="btn-again" onclick="grade('again')">✗ 모르겠어</button>
-      <button class="btn btn-good btn-hidden" id="btn-good" onclick="grade('good')">✓ 알겠어</button>
+      <button class="btn btn-again btn-hidden" id="btn-again" onclick="grade('again')">✗ 다시 학습</button>
+      <button class="btn btn-good btn-hidden" id="btn-good" onclick="grade('good')">✓ 알고있음</button>
     </div>
     <div class="deck-info" id="deck-info"></div>
   </div>
@@ -258,7 +285,7 @@
         • 1일차: 1~25번, 2일차: 26~50번, ...<br>
         • 날짜가 바뀌면 자동으로 다음 25개로 넘어가요<br>
         • 오답은 <b>오답 복습</b> 모드에 쌓여요<br>
-        • 300개 기준 12일 완성 → 1500개면 60일(약 2달)<br><br>
+        <span id="guide-stats">• 300개 기준 12일 완성</span> → 1500개면 60일(약 2달)<br><br>
         <b>7/5 시험까지 7주 = 49일</b><br>
         → 1500개 데이터 추가하면 딱 맞아요 💪
       </div>
@@ -1237,6 +1264,13 @@ window.addEventListener('load', () => {
   updateReviewCount();
   setMode('daily');
   renderRecord();
+
+  // 단어 수 자동 반영
+  const total = WORDS.length;
+  const days = Math.ceil(total / DAILY_SIZE);
+  document.getElementById('mode-all-sub').textContent = `${total}개 셔플`;
+  document.getElementById('guide-stats').innerHTML =
+    `• ${total}개 기준 ${days}일 완성`;
 });
 
 // ── 발음 ──────────────────────────────────────────────────────────────────
@@ -1373,9 +1407,14 @@ function shuffle(a) {
 }
 
 // ── 카드 ──────────────────────────────────────────────────────────────────
+let revealState = null; // null | 'meaning' | 'reading'
+
 function nextCard() {
-  document.getElementById('card').classList.remove('flipped');
-  flipped = false;
+  // 정답 상태 초기화
+  revealState = null;
+  document.getElementById('card-reveal').classList.add('hidden');
+  document.getElementById('btn-meaning').classList.remove('active');
+  document.getElementById('btn-reading').classList.remove('active');
   document.getElementById('btn-again').classList.add('btn-hidden');
   document.getElementById('btn-good').classList.add('btn-hidden');
 
@@ -1398,25 +1437,48 @@ function nextCard() {
   const idx = WORDS.indexOf(next);
   document.getElementById('card-num').textContent = idx >= 0 ? `#${idx+1}` : '';
   document.getElementById('front-kanji').textContent = next.k;
-  document.getElementById('front-reading').textContent = next.r;
   document.getElementById('card-type').textContent = next.t;
-  document.getElementById('back-kanji').textContent = next.k;
-  document.getElementById('back-reading').textContent = next.r;
-  document.getElementById('back-meaning').textContent = next.m;
-  document.getElementById('example-jp').textContent = next.ej||'';
-  document.getElementById('example-kr').textContent = next.ek||'';
+  document.getElementById('example-jp').textContent = next.ej || '예문 없음';
+  document.getElementById('example-kr').textContent = next.ek || '';
   updateStats();
 }
 
-function flipCard() {
-  if (flipped || !currentCard) return;
-  flipped = true;
-  document.getElementById('card').classList.add('flipped');
-  setTimeout(() => {
+function revealToggle(type) {
+  if (!currentCard) return;
+
+  // 같은 버튼 다시 누르면 닫기
+  if (revealState === type) {
+    revealState = null;
+    document.getElementById('card-reveal').classList.add('hidden');
+    document.getElementById('btn-meaning').classList.remove('active');
+    document.getElementById('btn-reading').classList.remove('active');
+    // 둘 다 확인 안 했으면 판정 버튼 숨김
+    checkShowGradeButtons();
+    return;
+  }
+
+  revealState = type;
+  const text = type === 'meaning' ? currentCard.m : currentCard.r;
+  document.getElementById('reveal-text').textContent = text;
+  document.getElementById('card-reveal').classList.remove('hidden');
+  document.getElementById('btn-meaning').classList.toggle('active', type === 'meaning');
+  document.getElementById('btn-reading').classList.toggle('active', type === 'reading');
+
+  checkShowGradeButtons();
+}
+
+// 의미 또는 히라가나 중 하나라도 열었으면 판정 버튼 표시
+function checkShowGradeButtons() {
+  if (revealState !== null) {
     document.getElementById('btn-again').classList.remove('btn-hidden');
     document.getElementById('btn-good').classList.remove('btn-hidden');
-  }, 280);
+  } else {
+    document.getElementById('btn-again').classList.add('btn-hidden');
+    document.getElementById('btn-good').classList.add('btn-hidden');
+  }
 }
+
+function flipCard() { /* 플립 방식 제거 - revealToggle로 대체 */ }
 
 function grade(result) {
   if (result === 'again') {
