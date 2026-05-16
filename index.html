@@ -1588,15 +1588,40 @@ function getStreak(recs) {
 function renderRecord() {
   const recs = getRecords();
   const el = document.getElementById('record-content');
+  const streak = getStreak(recs);
+  const totalDone = recs.reduce((s,r)=>s+r.done, 0);
+  const totalWords = WORDS.length;
+  const days = ['일','월','화','수','목','금','토'];
+  const now = new Date();
+  const p = getProgress();
+  const totalDays = Math.ceil(totalWords/DAILY_SIZE);
+  const currentDay = p.dayIndex + 1;
+  const rangeStart = (p.dayIndex * DAILY_SIZE) % totalWords + 1;
+  const rangeEnd = Math.min(p.dayIndex * DAILY_SIZE + DAILY_SIZE, totalWords);
+  const progressPct = Math.min((totalDone/totalWords)*100, 100).toFixed(0);
+
+  // 진도 카드 (항상 표시)
+  const progressCard = `
+    <div class="overall-progress" style="margin-bottom:14px;">
+      <div class="op-title">전체 진도 (${totalDone} / ${totalWords}개)</div>
+      <div class="op-bar-wrap"><div class="op-bar-fill" style="width:${progressPct}%"></div></div>
+      <div class="op-nums"><span>${progressPct}% 완료</span><span>Day ${currentDay} / ${totalDays}일</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <button onclick="adjustDay(-1)" style="padding:7px 14px;border:1px solid var(--border);border-radius:99px;background:none;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">◀ 이전</button>
+        <div style="text-align:center;">
+          <div style="font-family:'Shippori Mincho',serif;font-size:16px;color:var(--accent);">Day ${currentDay}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${rangeStart}~${rangeEnd}번 단어</div>
+        </div>
+        <button onclick="adjustDay(1)" style="padding:7px 14px;border:1px solid var(--border);border-radius:99px;background:none;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">다음 ▶</button>
+      </div>
+    </div>`;
+
+  // 기록 없으면 진도 카드만 표시
   if (!recs.length) {
-    el.innerHTML=`<div class="no-record">아직 기록이 없어요.<br>첫 세션을 완료하면 여기 쌓여요 🌱</div>`;
+    el.innerHTML = progressCard + `<div class="no-record">아직 기록이 없어요.<br>첫 세션을 완료하면 여기 쌓여요 🌱</div>`;
     return;
   }
-  const streak=getStreak(recs);
-  const totalDone=recs.reduce((s,r)=>s+r.done,0);
-  const totalWords=WORDS.length;
-  const days=['일','월','화','수','목','금','토'];
-  const now=new Date();
+
   let grid='';
   for (let i=6;i>=0;i--){
     const d=new Date(now); d.setDate(d.getDate()-i);
@@ -1615,18 +1640,12 @@ function renderRecord() {
     </div>`;
   }).join('');
 
-  const progressPct = Math.min((totalDone/totalWords)*100, 100).toFixed(0);
-
   el.innerHTML=`
     <div class="streak-card">
       <div class="streak-flame">🔥</div>
       <div><div class="streak-count">${streak}일 연속</div><div class="streak-label">누적 ${totalDone}개 완료</div></div>
     </div>
-    <div class="overall-progress">
-      <div class="op-title">전체 진도 (${totalDone} / ${totalWords}개)</div>
-      <div class="op-bar-wrap"><div class="op-bar-fill" style="width:${progressPct}%"></div></div>
-      <div class="op-nums"><span>${progressPct}% 완료</span><span>Day ${getProgress().dayIndex+1} / ${Math.ceil(totalWords/DAILY_SIZE)}일</span></div>
-    </div>
+    ${progressCard}
     <div class="weekly-label">이번 주</div>
     <div class="weekly-grid">${grid}</div>
     <div class="history-list">${hist}</div>
@@ -1640,6 +1659,17 @@ function clearRecords() {
   localStorage.removeItem(WRONG_KEY);
   renderRecord();
   updateReviewCount();
+}
+
+function adjustDay(delta) {
+  const p = getProgress();
+  const totalDays = Math.ceil(WORDS.length / DAILY_SIZE);
+  p.dayIndex = (p.dayIndex + delta + totalDays) % totalDays;
+  p.lastDate = todayKey(); // 오늘 날짜 고정 (다음날 자동 진행 방지)
+  saveProgress(p);
+  renderRecord();
+  // 학습 탭도 새 진도로 갱신
+  if (currentMode === 'daily') setMode('daily');
 }
 
 // ── 탭 ────────────────────────────────────────────────────────────────────
