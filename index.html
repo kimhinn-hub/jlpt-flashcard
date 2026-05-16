@@ -152,11 +152,7 @@
   .clear-btn:hover{color:var(--red);border-color:var(--red);}
 
   /* 1500개 안내 */
-  .expand-guide{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;}
-  .expand-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-  .expand-body{font-size:12px;color:var(--text-muted);line-height:1.8;}
-  .expand-body a{color:var(--accent);text-decoration:none;}
-  .expand-body code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:11px;color:var(--text);}
+
 
   @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
   .card{animation:fadeIn .3s ease;}
@@ -170,8 +166,8 @@
   </header>
   <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab('study')">📖 학습</button>
+    <button class="tab-btn" onclick="switchTab('quiz')">✏️ 퀴즈</button>
     <button class="tab-btn" onclick="switchTab('record')">📊 기록</button>
-    <button class="tab-btn" onclick="switchTab('guide')">⚙️ 확장</button>
   </div>
 
   <!-- 학습 탭 -->
@@ -216,7 +212,10 @@
 
         <!-- 한자 + 발음 버튼 -->
         <div class="card-kanji" id="front-kanji">—</div>
-        <button class="speak-btn" onclick="speakWord(event)">🔊 발음</button>
+        <div style="display:flex;gap:8px;margin-top:0;">
+          <button class="speak-btn" onclick="speakWord(event)">🔊 발음</button>
+          <button class="speak-btn" onclick="openDict()">📖 사전</button>
+        </div>
 
         <!-- 구분선 + 예문 -->
         <div class="card-divider" style="margin-top:20px;"></div>
@@ -253,6 +252,50 @@
     <div class="deck-info" id="deck-info"></div>
   </div>
 
+  <!-- 퀴즈 탭 -->
+  <div class="tab-pane" id="tab-quiz">
+
+    <!-- 퀴즈 유형 선택 -->
+    <div class="mode-bar" style="margin-bottom:16px;">
+      <button class="mode-btn active" id="qmode-btn-1" onclick="setQuizMode('kanji')">
+        もんだい1
+        <span class="mode-sub">한자 → 히라가나</span>
+      </button>
+      <button class="mode-btn" id="qmode-btn-2" onclick="setQuizMode('hyoki')">
+        もんだい2
+        <span class="mode-sub">히라가나 → 한자</span>
+      </button>
+    </div>
+
+    <!-- 점수 -->
+    <div class="stats" style="margin-bottom:12px;">
+      <div class="stat"><div class="stat-value" id="q-correct" style="color:var(--green)">0</div><div class="stat-label">정답</div></div>
+      <div class="stat"><div class="stat-value" id="q-wrong" style="color:var(--red)">0</div><div class="stat-label">오답</div></div>
+      <div class="stat"><div class="stat-value" id="q-total" style="color:var(--accent)">0</div><div class="stat-label">완료</div></div>
+    </div>
+
+    <!-- 진행바 -->
+    <div class="progress-bar" style="margin-bottom:6px;"><div class="progress-fill" id="q-progress-fill" style="width:0%"></div></div>
+    <div style="font-size:11px;color:var(--text-dim);text-align:right;margin-bottom:16px;" id="q-progress-text">0 / 10</div>
+
+    <!-- 문제 카드 -->
+    <div class="card" id="q-card" style="cursor:default;min-height:220px;justify-content:center;margin-bottom:16px;">
+      <div class="card-type-badge" id="q-badge">명사</div>
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:.15em;margin-bottom:16px;" id="q-label">히라가나를 고르세요</div>
+      <div id="q-question" style="font-family:'Shippori Mincho',serif;font-size:60px;font-weight:700;color:var(--text);line-height:1;text-align:center;"></div>
+    </div>
+
+    <!-- 결과 표시 -->
+    <div id="q-result" style="display:none;padding:12px 16px;border-radius:var(--radius);font-size:13px;font-weight:700;text-align:center;margin-bottom:12px;"></div>
+
+    <!-- 보기 4개 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;" id="q-choices"></div>
+
+    <!-- 다음 버튼 -->
+    <button id="q-next-btn" onclick="quizNext()" style="display:none;width:100%;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:.05em;">다음 →</button>
+
+  </div>
+
   <!-- 기록 탭 -->
   <div class="tab-pane" id="tab-record">
     <div class="record-header"><h2>학습 기록</h2><p>7/5까지 매일 🎯</p></div>
@@ -260,36 +303,6 @@
   </div>
 
   <!-- 확장 가이드 탭 -->
-  <div class="tab-pane" id="tab-guide">
-    <div class="expand-guide">
-      <div class="expand-title">📦 1500개로 확장하는 방법</div>
-      <div class="expand-body">
-        <b>Step 1.</b> 아래 링크에서 N4 단어 데이터 다운로드<br>
-        👉 <a href="https://github.com/elzup/jlpt-word-list" target="_blank">github.com/elzup/jlpt-word-list</a><br>
-        → <code>n4.json</code> 파일 다운로드<br><br>
-
-        <b>Step 2.</b> 이 HTML 파일의 <code>const WORDS = [...]</code> 부분을 찾아서<br>
-        다운받은 단어 데이터로 교체<br><br>
-
-        <b>Step 3.</b> 형식 맞추기<br>
-        각 단어 항목이 아래 형식이어야 해요:<br>
-        <code>{k:'단어', r:'읽기', m:'뜻', t:'품사', ej:'예문JP', ek:'예문KR'}</code><br><br>
-
-        <b>또는</b> Claude에게 "N4 단어 데이터를 이 형식으로 변환해줘"라고 부탁하면 돼요 😊
-      </div>
-    </div>
-    <div class="expand-guide">
-      <div class="expand-title">📅 하루 25개 모드 동작 방식</div>
-      <div class="expand-body">
-        • 매일 순서대로 25개씩 배정돼요<br>
-        • 1일차: 1~25번, 2일차: 26~50번, ...<br>
-        • 날짜가 바뀌면 자동으로 다음 25개로 넘어가요<br>
-        • 오답은 <b>오답 복습</b> 모드에 쌓여요<br>
-        <span id="guide-stats">• 300개 기준 12일 완성</span> → 1500개면 60일(약 2달)<br><br>
-        <b>7/5 시험까지 7주 = 49일</b><br>
-        → 1500개 데이터 추가하면 딱 맞아요 💪
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1267,10 +1280,7 @@ window.addEventListener('load', () => {
 
   // 단어 수 자동 반영
   const total = WORDS.length;
-  const days = Math.ceil(total / DAILY_SIZE);
   document.getElementById('mode-all-sub').textContent = `${total}개 셔플`;
-  document.getElementById('guide-stats').innerHTML =
-    `• ${total}개 기준 ${days}일 완성`;
 });
 
 // ── 발음 ──────────────────────────────────────────────────────────────────
@@ -1295,6 +1305,11 @@ function speakWord(e) {
   btn.classList.add('speaking');
   u.onend = u.onerror = () => btn.classList.remove('speaking');
   speechSynthesis.speak(u);
+}
+
+function openDict() {
+  if (!currentCard) return;
+  window.open('https://ja.dict.naver.com/#/search?query=' + encodeURIComponent(currentCard.k), '_blank');
 }
 
 // ── 진도 관리 ──────────────────────────────────────────────────────────────
@@ -1628,12 +1643,218 @@ function clearRecords() {
 }
 
 // ── 탭 ────────────────────────────────────────────────────────────────────
+// ── 퀴즈 ──────────────────────────────────────────────────────────────────
+let quizMode = 'kanji'; // 'kanji' | 'hyoki'
+let quizList = [];
+let quizIdx = 0;
+let quizCorrect = 0;
+let quizWrong = 0;
+const QUIZ_SIZE = 10;
+
+// 어미 그룹화: 비슷한 어미의 단어끼리 묶어서 오답 보기 생성
+function getEndingGroup(word) {
+  const r = word.r;
+  const k = word.k;
+  const t = word.t;
+  if (t === '동사') {
+    if (r.endsWith('する')) return 'する동사';
+    if (r.endsWith('る')) return 'る동사';
+    if (r.endsWith('く') || r.endsWith('ぐ')) return 'く동사';
+    if (r.endsWith('す')) return 'す동사';
+    if (r.endsWith('つ')) return 'つ동사';
+    if (r.endsWith('む') || r.endsWith('ぶ') || r.endsWith('ぬ')) return 'む동사';
+    if (r.endsWith('う')) return 'う동사';
+    return '기타동사';
+  }
+  if (t === '형용사') {
+    if (r.endsWith('い')) return 'い형용사';
+    return 'な형용사';
+  }
+  if (t === '부사') return '부사';
+  return '명사';
+}
+
+function getWrongChoices(correct, pool, count) {
+  const group = getEndingGroup(correct);
+  // 1순위: 같은 어미 그룹
+  let sameGroup = pool.filter(w =>
+    w.k !== correct.k && getEndingGroup(w) === group
+  );
+  // 2순위: 같은 품사
+  let sameType = pool.filter(w =>
+    w.k !== correct.k && w.t === correct.t && getEndingGroup(w) !== group
+  );
+  // 3순위: 나머지
+  let others = pool.filter(w =>
+    w.k !== correct.k && w.t !== correct.t
+  );
+
+  let result = [];
+  // 같은 어미 그룹에서 최대한 채우기
+  result = [...shuffle([...sameGroup]).slice(0, count)];
+  if (result.length < count) {
+    result = [...result, ...shuffle([...sameType]).slice(0, count - result.length)];
+  }
+  if (result.length < count) {
+    result = [...result, ...shuffle([...others]).slice(0, count - result.length)];
+  }
+  return result.slice(0, count);
+}
+
+function setQuizMode(mode) {
+  quizMode = mode;
+  document.getElementById('qmode-btn-1').classList.toggle('active', mode === 'kanji');
+  document.getElementById('qmode-btn-2').classList.toggle('active', mode === 'hyoki');
+  startQuiz();
+}
+
+function startQuiz() {
+  // 한자 있는 단어만 (히라가나 전용 단어 제외)
+  const pool = WORDS.filter(w => w.k !== w.r);
+  quizList = shuffle([...pool]).slice(0, QUIZ_SIZE);
+  quizIdx = 0; quizCorrect = 0; quizWrong = 0;
+  updateQuizScore();
+  renderQuiz();
+}
+
+function renderQuiz() {
+  if (quizIdx >= quizList.length) { showQuizResult(); return; }
+
+  const word = quizList[quizIdx];
+  const pool = WORDS.filter(w => w.k !== w.r);
+
+  // 진행도
+  document.getElementById('q-progress-fill').style.width = (quizIdx / QUIZ_SIZE * 100) + '%';
+  document.getElementById('q-progress-text').textContent = `${quizIdx} / ${QUIZ_SIZE}`;
+  document.getElementById('q-badge').textContent = word.t;
+
+  // 문제 표시
+  if (quizMode === 'kanji') {
+    // もんだい1: 한자 → 히라가나
+    document.getElementById('q-label').textContent = '히라가나를 고르세요';
+    document.getElementById('q-question').textContent = word.k;
+    document.getElementById('q-question').style.fontFamily = "'Shippori Mincho', serif";
+    document.getElementById('q-question').style.fontSize = '60px';
+    document.getElementById('q-question').style.letterSpacing = '.05em';
+    document.getElementById('q-question').style.color = 'var(--text)';
+  } else {
+    // もんだい2: 히라가나 → 한자
+    document.getElementById('q-label').textContent = '한자 표기를 고르세요';
+    document.getElementById('q-question').textContent = word.r;
+    document.getElementById('q-question').style.fontFamily = "'Noto Sans JP', sans-serif";
+    document.getElementById('q-question').style.fontSize = '28px';
+    document.getElementById('q-question').style.letterSpacing = '.2em';
+    document.getElementById('q-question').style.color = 'var(--accent)';
+  }
+
+  // 결과/다음 버튼 초기화
+  document.getElementById('q-result').style.display = 'none';
+  document.getElementById('q-next-btn').style.display = 'none';
+
+  // 보기 생성
+  const wrongs = getWrongChoices(word, pool, 3);
+  const choices = shuffle([word, ...wrongs]);
+
+  const container = document.getElementById('q-choices');
+  container.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    const displayText = quizMode === 'kanji' ? c.r : c.k;
+    btn.textContent = displayText;
+    btn.style.cssText = `
+      padding:16px 10px;border:1px solid var(--border);border-radius:var(--radius);
+      background:var(--surface);color:var(--text);
+      font-family:'Noto Sans JP',sans-serif;font-size:${quizMode==='kanji'?'16px':'20px'};
+      cursor:pointer;transition:all .2s;line-height:1.4;text-align:center;
+      font-weight:${quizMode==='hyoki'?'700':'400'};
+    `;
+    btn.onclick = () => selectQuizAnswer(btn, c, word, choices);
+    container.appendChild(btn);
+  });
+}
+
+function selectQuizAnswer(btn, selected, correct, allChoices) {
+  // 모든 버튼 비활성화
+  document.querySelectorAll('#q-choices button').forEach(b => {
+    b.onclick = null;
+    b.style.cursor = 'default';
+  });
+
+  const isCorrect = selected.k === correct.k;
+  const correctText = quizMode === 'kanji' ? correct.r : correct.k;
+  const selectedText = quizMode === 'kanji' ? selected.r : selected.k;
+
+  // 정답/오답 버튼 색
+  document.querySelectorAll('#q-choices button').forEach(b => {
+    const val = b.textContent;
+    const isCorrectBtn = quizMode === 'kanji' ? val === correct.r : val === correct.k;
+    if (isCorrectBtn) {
+      b.style.background = 'rgba(106,158,122,.15)';
+      b.style.borderColor = 'var(--green)';
+      b.style.color = 'var(--green)';
+    } else if (b === btn && !isCorrect) {
+      b.style.background = 'rgba(194,96,96,.1)';
+      b.style.borderColor = 'var(--red)';
+      b.style.color = 'var(--red)';
+    }
+  });
+
+  // 결과 표시
+  const resultEl = document.getElementById('q-result');
+  resultEl.style.display = 'block';
+  if (isCorrect) {
+    resultEl.style.cssText = 'display:block;padding:12px 16px;border-radius:16px;font-size:13px;font-weight:700;text-align:center;margin-bottom:12px;background:rgba(106,158,122,.12);border:1px solid rgba(106,158,122,.3);color:var(--green);';
+    resultEl.innerHTML = `✓ 정답!<br><span style="font-size:11px;color:var(--text-muted);font-weight:400;">${correct.k} ${correct.r} · ${correct.m}</span>`;
+    quizCorrect++;
+  } else {
+    resultEl.style.cssText = 'display:block;padding:12px 16px;border-radius:16px;font-size:13px;font-weight:700;text-align:center;margin-bottom:12px;background:rgba(194,96,96,.1);border:1px solid rgba(194,96,96,.3);color:var(--red);';
+    resultEl.innerHTML = `✗ 오답 — 정답: ${correctText}<br><span style="font-size:11px;color:var(--text-muted);font-weight:400;">${correct.k} ${correct.r} · ${correct.m}</span>`;
+    quizWrong++;
+    // 오답은 복습 큐에 추가
+    addWrongWords([correct]);
+    updateReviewCount();
+  }
+
+  updateQuizScore();
+  document.getElementById('q-next-btn').style.display = 'block';
+}
+
+function quizNext() {
+  quizIdx++;
+  renderQuiz();
+}
+
+function showQuizResult() {
+  document.getElementById('q-progress-fill').style.width = '100%';
+  document.getElementById('q-progress-text').textContent = `${QUIZ_SIZE} / ${QUIZ_SIZE}`;
+  document.getElementById('q-question').textContent = '🎌';
+  document.getElementById('q-question').style.fontSize = '48px';
+  document.getElementById('q-label').textContent = '퀴즈 완료!';
+  document.getElementById('q-badge').textContent = `${quizCorrect}/${QUIZ_SIZE} 정답`;
+  document.getElementById('q-choices').innerHTML = '';
+  document.getElementById('q-result').style.display = 'none';
+
+  const nextBtn = document.getElementById('q-next-btn');
+  nextBtn.textContent = '다시 시작 🔄';
+  nextBtn.style.display = 'block';
+  nextBtn.onclick = startQuiz;
+}
+
+function updateQuizScore() {
+  document.getElementById('q-correct').textContent = quizCorrect;
+  document.getElementById('q-wrong').textContent = quizWrong;
+  document.getElementById('q-total').textContent = quizIdx;
+}
+
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b,i)=>
-    b.classList.toggle('active',(tab==='study'&&i===0)||(tab==='record'&&i===1)||(tab==='guide'&&i===2)));
-  ['study','record','guide'].forEach(t=>
+    b.classList.toggle('active',
+      (tab==='study'&&i===0)||(tab==='quiz'&&i===1)||
+      (tab==='record'&&i===2)));
+  ['study','quiz','record'].forEach(t=>
     document.getElementById(`tab-${t}`).classList.toggle('active',t===tab));
   if (tab==='record') renderRecord();
+  if (tab==='quiz') startQuiz();
 }
 </script>
 </body>
