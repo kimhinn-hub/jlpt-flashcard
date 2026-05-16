@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N4 스케줄러</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Shippori+Mincho:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1916;
+    --surface2: #222120;
+    --border: #2a2826;
+    --border2: #333130;
+    --accent: #c8a96e;
+    --accent2: #e8c98e;
+    --accent-dim: rgba(200,169,110,.15);
+    --text: #f0ece4;
+    --text-muted: #7a7568;
+    --text-dim: #4a4840;
+    --green: #6a9e7a;
+    --red: #c26060;
+    --blue: #6a8eae;
+    --radius: 14px;
+    --exam-date: '2026-07-05';
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(200,169,110,.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; width: 100%; max-width: 480px; }
+
+  /* 헤더 */
+  header { text-align: center; margin-bottom: 28px; }
+  .logo {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 11px;
+    letter-spacing: .35em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin-bottom: 16px;
+  }
+
+  /* D-day 카드 */
+  .dday-card {
+    background: linear-gradient(135deg, rgba(200,169,110,.12), rgba(200,169,110,.04));
+    border: 1px solid rgba(200,169,110,.3);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .dday-label { font-size: 11px; color: var(--text-muted); letter-spacing: .1em; margin-bottom: 4px; }
+  .dday-num {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .dday-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  .exam-date-text { font-size: 12px; color: var(--text-muted); text-align: right; }
+  .exam-date-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    margin-top: 3px;
+  }
+
+  /* 탭 */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    flex: 1; padding: 8px; background: none; border: none;
+    border-radius: 10px; color: var(--text-muted);
+    font-family: 'Noto Sans KR', sans-serif; font-size: 12px;
+    cursor: pointer; transition: all .2s; letter-spacing: .03em;
+  }
+  .tab-btn.active { background: var(--surface2); color: var(--accent); font-weight: 700; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* 주차 카드 */
+  .week-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .week-card.current { border-color: rgba(200,169,110,.4); }
+  .week-card.done { opacity: .55; }
+
+  .week-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    gap: 12px;
+    user-select: none;
+  }
+  .week-num {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: .1em;
+    min-width: 36px;
+  }
+  .week-card.current .week-num { color: var(--accent); }
+  .week-title { font-size: 13px; font-weight: 700; flex: 1; }
+  .week-dates { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+  .week-progress-wrap { display: flex; align-items: center; gap: 8px; }
+  .week-check-count { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; min-width: 28px; text-align: right; }
+  .week-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .week-card.current .week-badge { border-color: rgba(200,169,110,.4); color: var(--accent); }
+
+  .week-body { padding: 0 16px 14px; border-top: 1px solid var(--border); display: none; }
+  .week-body.open { display: block; padding-top: 14px; }
+
+  .week-focus {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+  }
+  .week-focus b { color: var(--accent); font-weight: 700; }
+
+  /* 체크 아이템 */
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-item:active { opacity: .7; }
+
+  .check-box {
+    width: 18px; height: 18px;
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+  }
+  .check-item.checked .check-box {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .check-item.checked .check-box::after {
+    content: '';
+    width: 5px; height: 9px;
+    border: 2px solid #fff;
+    border-top: none; border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+    display: block;
+  }
+  .check-label {
+    font-size: 13px;
+    line-height: 1.5;
+    flex: 1;
+    transition: color .2s;
+  }
+  .check-item.checked .check-label {
+    color: var(--text-dim);
+    text-decoration: line-through;
+    text-decoration-color: var(--text-dim);
+  }
+  .check-tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .tag-vocab { background: rgba(200,169,110,.12); color: var(--accent); }
+  .tag-grammar { background: rgba(106,142,174,.12); color: var(--blue); }
+  .tag-listen { background: rgba(106,158,122,.12); color: var(--green); }
+  .tag-practice { background: rgba(194,96,96,.12); color: var(--red); }
+
+  /* 오늘 탭 */
+  .today-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: .1em;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .time-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .time-block-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .time-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 60px;
+  }
+  .time-title { font-size: 13px; font-weight: 700; flex: 1; }
+  .time-duration { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+
+  .time-block-body { padding: 4px 0; }
+
+  /* 미니 진행바 */
+  .mini-bar-wrap { height: 2px; background: var(--surface2); margin: 0 16px 4px; border-radius: 99px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width .3s; }
+
+  /* 주간 요약 */
+  .weekly-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .ws-title { font-size: 11px; color: var(--text-dim); letter-spacing: .1em; margin-bottom: 12px; }
+  .ws-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+  .ws-day {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px;
+  }
+  .ws-day.done { background: rgba(106,158,122,.15); border-color: rgba(106,158,122,.4); }
+  .ws-day.today { border-color: var(--accent); }
+  .ws-day-label { font-size: 9px; color: var(--text-dim); }
+  .ws-day-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); }
+  .ws-day.done .ws-day-dot { background: var(--green); }
+
+  /* 단어장 링크 */
+  .link-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color .2s;
+    margin-bottom: 10px;
+  }
+  .link-card:hover { border-color: var(--accent); }
+  .link-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .link-sub { font-size: 11px; color: var(--text-muted); }
+  .link-arrow { font-size: 18px; color: var(--text-dim); }
+
+  /* 진행률 링 */
+  .progress-ring-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+  .progress-ring-inner { position: relative; width: 100px; height: 100px; }
+  .progress-ring-inner svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--surface2); stroke-width: 6; }
+  .ring-fill { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
+  .ring-text {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .ring-pct { font-family: 'Shippori Mincho', serif; font-size: 22px; color: var(--accent); line-height: 1; }
+  .ring-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .week-card { animation: fadeUp .3s ease both; }
+  .week-card:nth-child(1) { animation-delay: .05s; }
+  .week-card:nth-child(2) { animation-delay: .1s; }
+  .week-card:nth-child(3) { animation-delay: .15s; }
+  .week-card:nth-child(4) { animation-delay: .2s; }
+  .week-card:nth-child(5) { animation-delay: .25s; }
+  .week-card:nth-child(6) { animation-delay: .3s; }
+  .week-card:nth-child(7) { animation-delay: .35s; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">JLPT · N4 · 2026</div>
+    <h1>학습 스케줄러</h1>
+
+    <!-- D-day -->
+    <div class="dday-card">
+      <div>
+        <div class="dday-label">시험까지</div>
+        <div class="dday-num" id="dday-num">—</div>
+        <div class="dday-sub">일 남음</div>
+      </div>
+      <div>
+        <div class="exam-date-text">시험일</div>
+        <div class="exam-date-val">2026.07.05</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:3px;">일요일</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 탭 -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('today')">오늘</button>
+    <button class="tab-btn" onclick="switchTab('weekly')">7주 계획</button>
+  </div>
+
+  <!-- 오늘 탭 -->
+  <div class="tab-pane active" id="tab-today">
+
+    <div class="today-date" id="today-date-label">—</div>
+
+    <!-- 주간 출석 -->
+    <div class="weekly-summary">
+      <div class="ws-title">이번 주 학습</div>
+      <div class="ws-days" id="ws-days"></div>
+    </div>
+
+    <!-- 전체 진행률 링 -->
+    <div class="progress-ring-wrap">
+      <div class="progress-ring-inner">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="44"/>
+          <circle class="ring-fill" id="ring-fill" cx="50" cy="50" r="44"
+            stroke-dasharray="276.46"
+            stroke-dashoffset="276.46"/>
+        </svg>
+        <div class="ring-text">
+          <div class="ring-pct" id="ring-pct">0%</div>
+          <div class="ring-label">오늘 완료</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 시간 블록 -->
+    <div id="today-blocks"></div>
+
+    <!-- 단어장 바로가기 -->
+    <a href="https://kimhinn-hub.github.io/jlpt-flashcard/" class="link-card">
+      <div>
+        <div class="link-title">📖 단어장 열기</div>
+        <div class="link-sub">하루 25개 · 플래시카드 + 퀴즈</div>
+      </div>
+      <div class="link-arrow">→</div>
+    </a>
+
+  </div>
+
+  <!-- 7주 계획 탭 -->
+  <div class="tab-pane" id="tab-weekly">
+    <div id="week-cards"></div>
+  </div>
+
+</div>
+
+<script>
+// ── 데이터 ────────────────────────────────────────────────────────────────
+const EXAM_DATE = new Date('2026-07-05');
+const START_DATE = new Date('2026-05-17'); // 1주차 시작
+
+const WEEKS = [
+  {
+    week: 1,
+    title: '어휘 기초 + 한자 패턴',
+    focus: '<b>매일</b> 단어장 25개 · <b>한자 음독 패턴</b> 파악 시작\n목표: 한자 50자, 어휘 175개',
+    tasks: [
+      { id:'w1_vocab', label:'단어장 25개 완료 (하루 25개)', tag:'vocab' },
+      { id:'w1_kanji', label:'한자 음독/훈독 패턴 노트 정리', tag:'vocab' },
+      { id:'w1_quiz', label:'もんだい1·2 퀴즈 10문제 이상', tag:'practice' },
+      { id:'w1_listen', label:'N4 청해 유튜브 10분', tag:'listen' },
+    ]
+  },
+  {
+    week: 2,
+    title: '어휘 + 문법 기초',
+    focus: '<b>문법</b> 항목 학습 시작 (주 4~5일, 하루 1~2항목)\n목표: 문법 20항목, 어휘 누적',
+    tasks: [
+      { id:'w2_vocab', label:'단어장 25개 완료', tag:'vocab' },
+      { id:'w2_grammar1', label:'문법 항목 1~10 학습', tag:'grammar' },
+      { id:'w2_grammar2', label:'문법 항목 11~20 학습', tag:'grammar' },
+      { id:'w2_listen', label:'N4 청해 10분 × 3회', tag:'listen' },
+    ]
+  },
+  {
+    week: 3,
+    title: '문법 중반 + 청해 시작',
+    focus: '<b>문법</b> 40항목까지 · <b>청해</b> 실전 형식 익히기\n목표: 문법 40항목, 청해 유형 파악',
+    tasks: [
+      { id:'w3_vocab', label:'단어장 25개 완료 + 오답 복습', tag:'vocab' },
+      { id:'w3_grammar', label:'문법 항목 21~40 학습', tag:'grammar' },
+      { id:'w3_listen', label:'청해 유형별 10분 × 4회', tag:'listen' },
+      { id:'w3_quiz', label:'もんだい1·2 퀴즈 20문제 이상', tag:'practice' },
+    ]
+  },
+  {
+    week: 4,
+    title: '문법 마무리 + 독해 입문',
+    focus: '<b>문법 전 범위</b> 1회독 완료 · 짧은 독해 시작\n목표: 문법 80항목, 독해 입문',
+    tasks: [
+      { id:'w4_vocab', label:'단어장 25개 완료 + 오답 복습', tag:'vocab' },
+      { id:'w4_grammar', label:'문법 전 범위 1회독 완료', tag:'grammar' },
+      { id:'w4_reading', label:'N4 독해 지문 2개 읽기', tag:'practice' },
+      { id:'w4_listen', label:'청해 10분 × 4회', tag:'listen' },
+    ]
+  },
+  {
+    week: 5,
+    title: '어휘·문법 복습 + 독해',
+    focus: '<b>약점 어휘</b> 재정리 · 독해 지문 풀이 연습\n목표: 오답 어휘 정리, 독해 5지문',
+    tasks: [
+      { id:'w5_vocab', label:'오답 단어 집중 복습', tag:'vocab' },
+      { id:'w5_grammar', label:'문법 약점 항목 재학습', tag:'grammar' },
+      { id:'w5_reading', label:'N4 독해 지문 5개 풀기', tag:'practice' },
+      { id:'w5_quiz', label:'もんだい1·2 퀴즈 30문제 이상', tag:'practice' },
+    ]
+  },
+  {
+    week: 6,
+    title: '실전 문제풀이 집중',
+    focus: '<b>모의고사 or 기출</b> 2회 이상 · 오답 분석\n목표: 실전 감각 익히기',
+    tasks: [
+      { id:'w6_mock1', label:'모의고사 1회 풀기 + 오답 분석', tag:'practice' },
+      { id:'w6_mock2', label:'모의고사 2회 풀기 + 오답 분석', tag:'practice' },
+      { id:'w6_vocab', label:'오답 어휘 최종 정리', tag:'vocab' },
+      { id:'w6_listen', label:'청해 실전 연습 × 4회', tag:'listen' },
+    ]
+  },
+  {
+    week: 7,
+    title: '오답 복습 + 마무리',
+    focus: '<b>오답 위주</b> 가볍게 복습 · 시험 전날은 충분한 수면\n목표: 컨디션 관리, 자신감 유지',
+    tasks: [
+      { id:'w7_review', label:'오답 단어 최종 복습', tag:'vocab' },
+      { id:'w7_grammar', label:'헷갈리는 문법 포인트 정리', tag:'grammar' },
+      { id:'w7_listen', label:'청해 가볍게 × 2회', tag:'listen' },
+      { id:'w7_rest', label:'시험 전날 일찍 취침 ✓', tag:'practice' },
+    ]
+  },
+];
+
+// 오늘의 시간 블록 (요일별 다름)
+const TIME_BLOCKS_WEEKDAY = [
+  {
+    time: '아침', title: '단어장', duration: '15분',
+    items: [
+      { id:'td_flashcard', label: '플래시카드 25개 → 완료', tag: 'vocab' },
+    ]
+  },
+  {
+    time: '저녁', title: '문법 + 청해', duration: '30~40분',
+    items: [
+      { id:'td_grammar', label: '문법 1항목 학습', tag: 'grammar' },
+      { id:'td_listen', label: '청해 10~15분', tag: 'listen' },
+      { id:'td_quiz', label: '퀴즈 10문제', tag: 'practice' },
+    ]
+  },
+];
+
+const TIME_BLOCKS_WEEKEND = [
+  {
+    time: '오전', title: '주간 복습', duration: '30분',
+    items: [
+      { id:'td_review', label: '오답 단어 복습', tag: 'vocab' },
+      { id:'td_mock', label: '모의문제 1섹션', tag: 'practice' },
+    ]
+  },
+  {
+    time: '오후', title: '청해 + 독해', duration: '20~30분',
+    items: [
+      { id:'td_listen2', label: '청해 실전 연습', tag: 'listen' },
+      { id:'td_reading', label: '독해 지문 1개', tag: 'practice' },
+    ]
+  },
+];
+
+// ── 스토리지 ──────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'jlpt_schedule_v1';
+
+function getChecked() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function setChecked(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  catch(e) {}
+}
+
+function todayKey() { return new Date().toISOString().slice(0,10); }
+
+// ── 유틸 ──────────────────────────────────────────────────────────────────
+function getDday() {
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const diff = EXAM_DATE - now;
+  return Math.ceil(diff / (1000*60*60*24));
+}
+
+function getCurrentWeek() {
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const diff = now - START_DATE;
+  const dayNum = Math.floor(diff / (1000*60*60*24));
+  return Math.min(Math.floor(dayNum / 7) + 1, 7);
+}
+
+function getWeekDates(weekIdx) {
+  const start = new Date(START_DATE);
+  start.setDate(start.getDate() + weekIdx * 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+  return `${fmt(start)}~${fmt(end)}`;
+}
+
+function isWeekDone(weekIdx) {
+  const end = new Date(START_DATE);
+  end.setDate(end.getDate() + weekIdx * 7 + 6);
+  end.setHours(23,59,59);
+  return new Date() > end;
+}
+
+const TAG_LABELS = { vocab:'어휘', grammar:'문법', listen:'청해', practice:'실전' };
+
+// ── D-day ─────────────────────────────────────────────────────────────────
+function renderDday() {
+  const d = getDday();
+  document.getElementById('dday-num').textContent = d > 0 ? d : d === 0 ? '0' : '시험 완료';
+}
+
+// ── 오늘 탭 ───────────────────────────────────────────────────────────────
+function renderToday() {
+  const now = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('today-date-label').textContent =
+    `${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()} ${days[now.getDay()]}요일`;
+
+  // 주간 출석
+  renderWeeklyAttendance();
+
+  // 오늘 시간 블록
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+  const blocks = isWeekend ? TIME_BLOCKS_WEEKEND : TIME_BLOCKS_WEEKDAY;
+  const checked = getChecked();
+  const today = todayKey();
+
+  const container = document.getElementById('today-blocks');
+  container.innerHTML = '';
+
+  let totalItems = 0, doneItems = 0;
+
+  blocks.forEach(block => {
+    const blockEl = document.createElement('div');
+    blockEl.className = 'time-block';
+
+    const itemsHtml = block.items.map(item => {
+      const key = `${today}_${item.id}`;
+      const isDone = !!checked[key];
+      if (isDone) doneItems++;
+      totalItems++;
+      return `
+        <div class="check-item ${isDone?'checked':''}" onclick="toggleTodayItem('${key}', this)">
+          <div class="check-box"></div>
+          <div class="check-label">${item.label}</div>
+          <span class="check-tag tag-${item.tag}">${TAG_LABELS[item.tag]}</span>
+        </div>`;
+    }).join('');
+
+    const doneCnt = block.items.filter(i => !!checked[`${today}_${i.id}`]).length;
+    const pct = (doneCnt / block.items.length * 100).toFixed(0);
+
+    blockEl.innerHTML = `
+      <div class="time-block-header">
+        <span class="time-label">${block.time}</span>
+        <span class="time-title">${block.title}</span>
+        <span class="time-duration">${block.duration}</span>
+      </div>
+      <div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:${pct}%"></div></div>
+      <div class="time-block-body">${itemsHtml}</div>`;
+
+    container.appendChild(blockEl);
+  });
+
+  // 진행률 링
+  updateRing(totalItems > 0 ? Math.round(doneItems/totalItems*100) : 0);
+}
+
+function toggleTodayItem(key, el) {
+  const checked = getChecked();
+  if (checked[key]) delete checked[key];
+  else checked[key] = true;
+  setChecked(checked);
+  el.classList.toggle('checked');
+  renderToday();
+}
+
+function updateRing(pct) {
+  const circumference = 276.46;
+  const offset = circumference - (pct / 100 * circumference);
+  document.getElementById('ring-fill').style.strokeDashoffset = offset;
+  document.getElementById('ring-pct').textContent = pct + '%';
+}
+
+function renderWeeklyAttendance() {
+  const days = ['일','월','화','수','목','금','토'];
+  const now = new Date();
+  const checked = getChecked();
+  const container = document.getElementById('ws-days');
+  container.innerHTML = '';
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0,10);
+    const isToday = i === 0;
+    // 오늘 블록 중 하나라도 체크된 날은 done
+    const hasDone = Object.keys(checked).some(k => k.startsWith(key));
+    container.innerHTML += `
+      <div class="ws-day ${hasDone?'done':''} ${isToday?'today':''}">
+        <span class="ws-day-label">${days[d.getDay()]}</span>
+        <div class="ws-day-dot"></div>
+      </div>`;
+  }
+}
+
+// ── 7주 계획 탭 ───────────────────────────────────────────────────────────
+function renderWeekly() {
+  const currentWeek = getCurrentWeek();
+  const checked = getChecked();
+  const container = document.getElementById('week-cards');
+  container.innerHTML = '';
+
+  WEEKS.forEach((w, idx) => {
+    const isCurrent = w.week === currentWeek;
+    const isDone = isWeekDone(idx);
+    const dates = getWeekDates(idx);
+
+    const tasksDone = w.tasks.filter(t => !!checked[`week_${t.id}`]).length;
+    const tasksTotal = w.tasks.length;
+
+    const card = document.createElement('div');
+    card.className = `week-card ${isCurrent?'current':''} ${isDone?'done':''}`;
+
+    const tasksHtml = w.tasks.map(t => {
+      const key = `week_${t.id}`;
+      const isChecked = !!checked[key];
+      return `
+        <div class="check-item ${isChecked?'checked':''}" onclick="toggleWeekTask('${key}', this, '${card.id}')">
+          <div class="check-box"></div>
+          <div class="check-label">${t.label}</div>
+          <span class="check-tag tag-${t.tag}">${TAG_LABELS[t.tag]}</span>
+        </div>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="week-header" onclick="toggleWeekBody(this)">
+        <span class="week-num">W${w.week}</span>
+        <div style="flex:1;">
+          <div class="week-title">${w.title}</div>
+          <div class="week-dates">${dates}</div>
+        </div>
+        <div class="week-progress-wrap">
+          <span class="week-check-count">${tasksDone}/${tasksTotal}</span>
+          <span class="week-badge">${isCurrent?'진행중':isDone?'완료':'예정'}</span>
+        </div>
+      </div>
+      <div class="week-body ${isCurrent?'open':''}">
+        <div class="week-focus">${w.focus.replace(/\n/g,'<br>')}</div>
+        ${tasksHtml}
+      </div>`;
+
+    container.appendChild(card);
+  });
+}
+
+function toggleWeekBody(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function toggleWeekTask(key, el, cardId) {
+  const checked = getChecked();
+  if (checked[key]) delete checked[key];
+  else checked[key] = true;
+  setChecked(checked);
+  el.classList.toggle('checked');
+  // 체크 카운트 업데이트
+  const card = el.closest('.week-card');
+  const allItems = card.querySelectorAll('.check-item');
+  const done = card.querySelectorAll('.check-item.checked').length;
+  card.querySelector('.week-check-count').textContent = `${done}/${allItems.length}`;
+}
+
+// ── 탭 ────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) =>
+    b.classList.toggle('active', (tab==='today'&&i===0)||(tab==='weekly'&&i===1)));
+  document.getElementById('tab-today').classList.toggle('active', tab==='today');
+  document.getElementById('tab-weekly').classList.toggle('active', tab==='weekly');
+}
+
+// ── 초기화 ────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  renderDday();
+  renderToday();
+  renderWeekly();
+});
+</script>
+</body>
+</html>
