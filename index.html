@@ -259,8 +259,21 @@
     <!-- 오늘 범위 안내 -->
     <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;letter-spacing:.05em;" id="q-range-info">오늘의 단어 범위</div>
 
-    <!-- 퀴즈 유형 선택 -->
-    <div class="mode-bar" style="margin-bottom:16px;">
+    <!-- 연습/시험 모드 토글 -->
+    <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px;position:relative;" id="quiz-toggle-wrap">
+      <div id="quiz-toggle-indicator" style="position:absolute;top:4px;bottom:4px;width:calc(50% - 4px);left:4px;background:var(--surface2);border-radius:12px;transition:transform .25s cubic-bezier(.4,0,.2,1);"></div>
+      <button id="qtoggle-practice" onclick="setQuizToggle('practice')" style="flex:1;padding:10px 8px;background:none;border:none;border-radius:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--accent);font-weight:700;position:relative;z-index:1;text-align:center;">
+        연습 모드
+        <span style="font-size:10px;color:var(--text-muted);display:block;margin-top:2px;font-weight:400;">유형 직접 선택</span>
+      </button>
+      <button id="qtoggle-exam" onclick="setQuizToggle('exam')" style="flex:1;padding:10px 8px;background:none;border:none;border-radius:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--text-muted);font-weight:400;position:relative;z-index:1;text-align:center;">
+        시험 모드
+        <span style="font-size:10px;color:var(--text-dim);display:block;margin-top:2px;">もんだい1·2 셔플</span>
+      </button>
+    </div>
+
+    <!-- 연습 모드: 유형 선택 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;" id="quiz-type-select">
       <button class="mode-btn active" id="qmode-btn-1" onclick="setQuizMode('kanji')">
         もんだい1
         <span class="mode-sub">한자 → 히라가나</span>
@@ -269,6 +282,12 @@
         もんだい2
         <span class="mode-sub">히라가나 → 한자</span>
       </button>
+    </div>
+
+    <!-- 시험 모드: 안내 -->
+    <div id="quiz-exam-info" style="display:none;background:rgba(200,169,110,.06);border:1px solid rgba(200,169,110,.2);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--text-muted);line-height:1.8;">
+      <b style="color:var(--accent);">もんだい1·2 혼합 출제</b><br>
+      한자 읽기와 한자 표기가 무작위로 섞여 나와요.<br>실제 시험과 동일한 방식이에요.
     </div>
 
     <!-- 점수 -->
@@ -296,7 +315,8 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;" id="q-choices"></div>
 
     <!-- 다음 버튼 -->
-    <button id="q-next-btn" onclick="quizNext()" style="display:none;width:100%;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:.05em;">다음 →</button>
+    <button id="q-next-btn" onclick="quizNext()" style="display:none;width:100%;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:.05em;margin-bottom:8px;">다음 →</button>
+    <button id="q-retry-wrong-btn" onclick="retryWrongOnly()" style="display:none;width:100%;padding:13px;background:rgba(194,96,96,.1);color:var(--red);border:1px solid rgba(194,96,96,.3);border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:.05em;">✗ 틀린 것만 다시 풀기</button>
 
   </div>
 
@@ -1678,12 +1698,6 @@ function adjustDay(delta) {
 
 // ── 탭 ────────────────────────────────────────────────────────────────────
 // ── 퀴즈 ──────────────────────────────────────────────────────────────────
-let quizMode = 'kanji'; // 'kanji' | 'hyoki'
-let quizList = [];
-let quizIdx = 0;
-let quizCorrect = 0;
-let quizWrong = 0;
-const QUIZ_SIZE = 10;
 
 // 어미 그룹화: 비슷한 어미의 단어끼리 묶어서 오답 보기 생성
 function getEndingGroup(word) {
@@ -1735,6 +1749,36 @@ function getWrongChoices(correct, pool, count) {
   return result.slice(0, count);
 }
 
+// ── 퀴즈 ──────────────────────────────────────────────────────────────────
+let quizMode = 'kanji';
+let quizToggle = 'practice'; // 'practice' | 'exam'
+let quizList = [];
+let quizWrongList = []; // 이번 세션 틀린 단어
+let quizIdx = 0;
+let quizCorrect = 0;
+let quizWrong = 0;
+const QUIZ_SIZE = 10;
+
+function setQuizToggle(mode) {
+  quizToggle = mode;
+  // 토글 인디케이터
+  document.getElementById('quiz-toggle-indicator').style.transform =
+    mode === 'exam' ? 'translateX(calc(100%))' : 'translateX(0)';
+  // 버튼 스타일
+  const pBtn = document.getElementById('qtoggle-practice');
+  const eBtn = document.getElementById('qtoggle-exam');
+  pBtn.style.color = mode === 'practice' ? 'var(--accent)' : 'var(--text-muted)';
+  pBtn.style.fontWeight = mode === 'practice' ? '700' : '400';
+  pBtn.querySelector('span').style.color = mode === 'practice' ? 'var(--text-muted)' : 'var(--text-dim)';
+  eBtn.style.color = mode === 'exam' ? 'var(--accent)' : 'var(--text-muted)';
+  eBtn.style.fontWeight = mode === 'exam' ? '700' : '400';
+  eBtn.querySelector('span').style.color = mode === 'exam' ? 'var(--text-muted)' : 'var(--text-dim)';
+  // 유형 선택 / 안내 표시
+  document.getElementById('quiz-type-select').style.display = mode === 'practice' ? 'grid' : 'none';
+  document.getElementById('quiz-exam-info').style.display = mode === 'exam' ? 'block' : 'none';
+  startQuiz();
+}
+
 function setQuizMode(mode) {
   quizMode = mode;
   document.getElementById('qmode-btn-1').classList.toggle('active', mode === 'kanji');
@@ -1743,20 +1787,36 @@ function setQuizMode(mode) {
 }
 
 function startQuiz() {
-  // 오늘의 25개 단어에서만 출제 (getTodayWords와 연동)
-  const {words} = getTodayWords();
+  const {words, start, end} = getTodayWords();
   const todayPool = words.filter(w => w.k !== w.r);
-  // 오늘 단어가 부족하면 전체로 보완
   const pool = todayPool.length >= 4 ? todayPool : WORDS.filter(w => w.k !== w.r);
   quizList = shuffle([...pool]).slice(0, Math.min(QUIZ_SIZE, pool.length));
+  quizWrongList = [];
   quizIdx = 0; quizCorrect = 0; quizWrong = 0;
   updateQuizScore();
 
-  // 퀴즈 범위 안내 표시
-  const {start, end} = getTodayWords();
   const infoEl = document.getElementById('q-range-info');
   if (infoEl) infoEl.textContent = `오늘의 단어 ${start}~${end}번 범위`;
 
+  // 시험 모드면 각 문제마다 랜덤으로 유형 결정
+  if (quizToggle === 'exam') {
+    quizList = quizList.map(w => ({...w, _mode: Math.random() > 0.5 ? 'kanji' : 'hyoki'}));
+  }
+
+  renderQuiz();
+}
+
+function retryWrongOnly() {
+  if (!quizWrongList.length) return;
+  quizList = shuffle([...quizWrongList]);
+  if (quizToggle === 'exam') {
+    quizList = quizList.map(w => ({...w, _mode: Math.random() > 0.5 ? 'kanji' : 'hyoki'}));
+  }
+  quizWrongList = [];
+  quizIdx = 0; quizCorrect = 0; quizWrong = 0;
+  updateQuizScore();
+  document.getElementById('q-next-btn').style.display = 'none';
+  document.getElementById('q-retry-wrong-btn').style.display = 'none';
   renderQuiz();
 }
 
@@ -1764,17 +1824,18 @@ function renderQuiz() {
   if (quizIdx >= quizList.length) { showQuizResult(); return; }
 
   const word = quizList[quizIdx];
-  // 오답 보기는 전체 단어에서 (같은 어미 그룹 우선)
   const pool = WORDS.filter(w => w.k !== w.r);
+  // 시험 모드면 문제별 지정 유형, 연습 모드면 선택된 유형
+  const mode = quizToggle === 'exam' ? word._mode : quizMode;
 
-  // 진행도
   document.getElementById('q-progress-fill').style.width = (quizIdx / quizList.length * 100) + '%';
   document.getElementById('q-progress-text').textContent = `${quizIdx} / ${quizList.length}`;
-  document.getElementById('q-badge').textContent = word.t;
+  // 시험 모드엔 もんだい 번호 표시
+  document.getElementById('q-badge').textContent = quizToggle === 'exam'
+    ? (mode === 'kanji' ? 'もんだい1' : 'もんだい2')
+    : word.t;
 
-  // 문제 표시
-  if (quizMode === 'kanji') {
-    // もんだい1: 한자 → 히라가나
+  if (mode === 'kanji') {
     document.getElementById('q-label').textContent = '히라가나를 고르세요';
     document.getElementById('q-question').textContent = word.k;
     document.getElementById('q-question').style.fontFamily = "'Shippori Mincho', serif";
@@ -1782,7 +1843,6 @@ function renderQuiz() {
     document.getElementById('q-question').style.letterSpacing = '.05em';
     document.getElementById('q-question').style.color = 'var(--text)';
   } else {
-    // もんだい2: 히라가나 → 한자
     document.getElementById('q-label').textContent = '한자 표기를 고르세요';
     document.getElementById('q-question').textContent = word.r;
     document.getElementById('q-question').style.fontFamily = "'Noto Sans JP', sans-serif";
@@ -1791,11 +1851,10 @@ function renderQuiz() {
     document.getElementById('q-question').style.color = 'var(--accent)';
   }
 
-  // 결과/다음 버튼 초기화
   document.getElementById('q-result').style.display = 'none';
   document.getElementById('q-next-btn').style.display = 'none';
+  document.getElementById('q-retry-wrong-btn').style.display = 'none';
 
-  // 보기 생성
   const wrongs = getWrongChoices(word, pool, 3);
   const choices = shuffle([word, ...wrongs]);
 
@@ -1803,47 +1862,32 @@ function renderQuiz() {
   container.innerHTML = '';
   choices.forEach(c => {
     const btn = document.createElement('button');
-    const displayText = quizMode === 'kanji' ? c.r : c.k;
+    const displayText = mode === 'kanji' ? c.r : c.k;
     btn.textContent = displayText;
     btn.style.cssText = `
       padding:16px 10px;border:1px solid var(--border);border-radius:var(--radius);
       background:var(--surface);color:var(--text);
-      font-family:'Noto Sans JP',sans-serif;font-size:${quizMode==='kanji'?'16px':'20px'};
+      font-family:'Noto Sans JP',sans-serif;font-size:${mode==='kanji'?'16px':'20px'};
       cursor:pointer;transition:all .2s;line-height:1.4;text-align:center;
-      font-weight:${quizMode==='hyoki'?'700':'400'};
+      font-weight:${mode==='hyoki'?'700':'400'};
     `;
-    btn.onclick = () => selectQuizAnswer(btn, c, word, choices);
+    btn.onclick = () => selectQuizAnswer(btn, c, word, mode);
     container.appendChild(btn);
   });
 }
 
-function selectQuizAnswer(btn, selected, correct, allChoices) {
-  // 모든 버튼 비활성화
-  document.querySelectorAll('#q-choices button').forEach(b => {
-    b.onclick = null;
-    b.style.cursor = 'default';
-  });
+function selectQuizAnswer(btn, selected, correct, mode) {
+  document.querySelectorAll('#q-choices button').forEach(b => { b.onclick = null; b.style.cursor = 'default'; });
 
   const isCorrect = selected.k === correct.k;
-  const correctText = quizMode === 'kanji' ? correct.r : correct.k;
-  const selectedText = quizMode === 'kanji' ? selected.r : selected.k;
+  const correctText = mode === 'kanji' ? correct.r : correct.k;
 
-  // 정답/오답 버튼 색
   document.querySelectorAll('#q-choices button').forEach(b => {
-    const val = b.textContent;
-    const isCorrectBtn = quizMode === 'kanji' ? val === correct.r : val === correct.k;
-    if (isCorrectBtn) {
-      b.style.background = 'rgba(106,158,122,.15)';
-      b.style.borderColor = 'var(--green)';
-      b.style.color = 'var(--green)';
-    } else if (b === btn && !isCorrect) {
-      b.style.background = 'rgba(194,96,96,.1)';
-      b.style.borderColor = 'var(--red)';
-      b.style.color = 'var(--red)';
-    }
+    const isCorrectBtn = mode === 'kanji' ? b.textContent === correct.r : b.textContent === correct.k;
+    if (isCorrectBtn) { b.style.background='rgba(106,158,122,.15)'; b.style.borderColor='var(--green)'; b.style.color='var(--green)'; }
+    else if (b === btn && !isCorrect) { b.style.background='rgba(194,96,96,.1)'; b.style.borderColor='var(--red)'; b.style.color='var(--red)'; }
   });
 
-  // 결과 표시
   const resultEl = document.getElementById('q-result');
   resultEl.style.display = 'block';
   if (isCorrect) {
@@ -1854,7 +1898,7 @@ function selectQuizAnswer(btn, selected, correct, allChoices) {
     resultEl.style.cssText = 'display:block;padding:12px 16px;border-radius:16px;font-size:13px;font-weight:700;text-align:center;margin-bottom:12px;background:rgba(194,96,96,.1);border:1px solid rgba(194,96,96,.3);color:var(--red);';
     resultEl.innerHTML = `✗ 오답 — 정답: ${correctText}<br><span style="font-size:11px;color:var(--text-muted);font-weight:400;">${correct.k} ${correct.r} · ${correct.m}</span>`;
     quizWrong++;
-    // 오답은 복습 큐에 추가
+    quizWrongList.push(correct);
     addWrongWords([correct]);
     updateReviewCount();
   }
@@ -1873,6 +1917,7 @@ function showQuizResult() {
   document.getElementById('q-progress-text').textContent = `${quizList.length} / ${quizList.length}`;
   document.getElementById('q-question').textContent = '🎌';
   document.getElementById('q-question').style.fontSize = '48px';
+  document.getElementById('q-question').style.fontFamily = "'Noto Sans KR',sans-serif";
   document.getElementById('q-label').textContent = '퀴즈 완료!';
   document.getElementById('q-badge').textContent = `${quizCorrect}/${quizList.length} 정답`;
   document.getElementById('q-choices').innerHTML = '';
@@ -1882,6 +1927,15 @@ function showQuizResult() {
   nextBtn.textContent = '다시 시작 🔄';
   nextBtn.style.display = 'block';
   nextBtn.onclick = startQuiz;
+
+  // 틀린 것만 다시 풀기 버튼 (틀린 게 있을 때만)
+  const retryBtn = document.getElementById('q-retry-wrong-btn');
+  if (quizWrong > 0) {
+    retryBtn.textContent = `✗ 틀린 ${quizWrong}개 다시 풀기`;
+    retryBtn.style.display = 'block';
+  } else {
+    retryBtn.style.display = 'none';
+  }
 }
 
 function updateQuizScore() {
