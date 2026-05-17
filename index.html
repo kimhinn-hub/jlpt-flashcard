@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<link rel="apple-touch-icon" href="icon-flashcard.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JLPT N4 플래시카드</title>
 <style>
@@ -255,6 +255,9 @@
 
   <!-- 퀴즈 탭 -->
   <div class="tab-pane" id="tab-quiz">
+
+    <!-- 오늘 범위 안내 -->
+    <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;letter-spacing:.05em;" id="q-range-info">오늘의 단어 범위</div>
 
     <!-- 퀴즈 유형 선택 -->
     <div class="mode-bar" style="margin-bottom:16px;">
@@ -1740,11 +1743,20 @@ function setQuizMode(mode) {
 }
 
 function startQuiz() {
-  // 한자 있는 단어만 (히라가나 전용 단어 제외)
-  const pool = WORDS.filter(w => w.k !== w.r);
-  quizList = shuffle([...pool]).slice(0, QUIZ_SIZE);
+  // 오늘의 25개 단어에서만 출제 (getTodayWords와 연동)
+  const {words} = getTodayWords();
+  const todayPool = words.filter(w => w.k !== w.r);
+  // 오늘 단어가 부족하면 전체로 보완
+  const pool = todayPool.length >= 4 ? todayPool : WORDS.filter(w => w.k !== w.r);
+  quizList = shuffle([...pool]).slice(0, Math.min(QUIZ_SIZE, pool.length));
   quizIdx = 0; quizCorrect = 0; quizWrong = 0;
   updateQuizScore();
+
+  // 퀴즈 범위 안내 표시
+  const {start, end} = getTodayWords();
+  const infoEl = document.getElementById('q-range-info');
+  if (infoEl) infoEl.textContent = `오늘의 단어 ${start}~${end}번 범위`;
+
   renderQuiz();
 }
 
@@ -1752,11 +1764,12 @@ function renderQuiz() {
   if (quizIdx >= quizList.length) { showQuizResult(); return; }
 
   const word = quizList[quizIdx];
+  // 오답 보기는 전체 단어에서 (같은 어미 그룹 우선)
   const pool = WORDS.filter(w => w.k !== w.r);
 
   // 진행도
-  document.getElementById('q-progress-fill').style.width = (quizIdx / QUIZ_SIZE * 100) + '%';
-  document.getElementById('q-progress-text').textContent = `${quizIdx} / ${QUIZ_SIZE}`;
+  document.getElementById('q-progress-fill').style.width = (quizIdx / quizList.length * 100) + '%';
+  document.getElementById('q-progress-text').textContent = `${quizIdx} / ${quizList.length}`;
   document.getElementById('q-badge').textContent = word.t;
 
   // 문제 표시
@@ -1857,11 +1870,11 @@ function quizNext() {
 
 function showQuizResult() {
   document.getElementById('q-progress-fill').style.width = '100%';
-  document.getElementById('q-progress-text').textContent = `${QUIZ_SIZE} / ${QUIZ_SIZE}`;
+  document.getElementById('q-progress-text').textContent = `${quizList.length} / ${quizList.length}`;
   document.getElementById('q-question').textContent = '🎌';
   document.getElementById('q-question').style.fontSize = '48px';
   document.getElementById('q-label').textContent = '퀴즈 완료!';
-  document.getElementById('q-badge').textContent = `${quizCorrect}/${QUIZ_SIZE} 정답`;
+  document.getElementById('q-badge').textContent = `${quizCorrect}/${quizList.length} 정답`;
   document.getElementById('q-choices').innerHTML = '';
   document.getElementById('q-result').style.display = 'none';
 
